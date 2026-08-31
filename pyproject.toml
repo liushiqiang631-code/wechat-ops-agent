@@ -1,0 +1,65 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wechat-ops-agent"
+version = "0.1.0"
+description = "Data-driven operations agent for a WeChat Official Account"
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+  "alembic>=1.14,<2",
+  "apscheduler>=3.10,<4",
+  "bleach>=6.2,<7",
+  "fastapi>=0.115,<1",
+  "httpx>=0.28,<1",
+  "jinja2>=3.1,<4",
+  "langgraph>=0.2,<2",
+  "langgraph-checkpoint-sqlite>=3.1,<4",
+  "markdown>=3.7,<4",
+  "openpyxl>=3.1,<4",
+  "pydantic>=2.10,<3",
+  "pydantic-settings>=2.7,<3",
+  "pygments>=2.18,<3",
+  "python-multipart>=0.0.20,<1",
+  "pyyaml>=6.0,<7",
+  "sqlalchemy>=2.0,<3",
+  "tinycss2>=1.4,<2",
+  "uvicorn[standard]>=0.34,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3,<9",
+  "pytest-asyncio>=0.25,<1",
+  "respx>=0.22,<1",
+  "ruff>=0.9,<1",
+]
+
+[project.scripts]
+wechat-ops = "app.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+filterwarnings = [
+  "ignore:Using `httpx` with `starlette.testclient` is deprecated",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S"]
+ignore = ["B008", "S101"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S106"]
+# vendored third-party script from github.com/KKKKhazix/human-writing; keep upstream formatting
+"app/skills/human_writing/check_prose.py" = ["I001", "B905", "E501"]

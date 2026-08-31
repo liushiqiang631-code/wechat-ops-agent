@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="agent-page" aria-labelledby="agent-title">
+  <div class="section-heading">
+    <div>
+      <p class="section-label">AGENT CAPABILITIES</p>
+      <h2 id="agent-title">Agent 能力管理</h2>
+    </div>
+  </div>
+  <p class="page-summary">
+    Skills 决定 Agent 的判断方式与写作风格；MCP 服务器把外部工具接进流程。
+    开关立即生效，下一次运行内容任务时应用。
+  </p>
+
+  <div class="agent-grid">
+    <section class="panel" aria-labelledby="skills-title">
+      <div class="panel-heading">
+        <div>
+          <p class="section-label">SKILLS</p>
+          <h2 id="skills-title">Skills（技能）</h2>
+        </div>
+      </div>
+      <div class="skill-list">
+        {% for skill in skills %}
+        <article class="skill-row">
+          <div class="skill-copy">
+            <h3>{{ skill.title }} <code>v{{ skill.version }}</code></h3>
+            <p>{{ skill.description }}</p>
+            <small>{{ skill.name }} · {{ "内置流水线" if skill.builtin else "用户安装" }}{{ " · 已启用" if skill.enabled else " · 已停用" }}</small>
+          </div>
+          {% if skill.locked %}
+          <span class="status-pill is-neutral">系统固定</span>
+          {% else %}
+          <button class="switch {{ 'is-on' if skill.enabled else '' }}" type="button"
+            data-skill-toggle data-skill-name="{{ skill.name }}"
+            data-skill-enabled="{{ '1' if skill.enabled else '0' }}"
+            aria-pressed="{{ 'true' if skill.enabled else 'false' }}">
+            <span class="switch-knob" aria-hidden="true"></span>
+            <span class="switch-label">{{ "已启用" if skill.enabled else "已停用" }}</span>
+          </button>
+          {% endif %}
+        </article>
+        {% else %}
+        <div class="task-empty"><h3>尚未发现 Skill</h3><p>Skill 包位于 app/skills/ 目录。</p></div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="mcp-title">
+      <div class="panel-heading">
+        <div>
+          <p class="section-label">MCP</p>
+          <h2 id="mcp-title">MCP 服务器</h2>
+        </div>
+        <button class="button button-secondary" type="button" id="mcp-probe-all">全部探测</button>
+      </div>
+      <p class="page-summary">
+        服务器声明在项目根目录 <code>mcp_servers.json</code>（已被 Git 忽略），
+        模板见 <code>mcp_servers.example.json</code>。
+      </p>
+      <div class="mcp-list">
+        {% for server in mcp_servers %}
+        <article class="mcp-row" data-mcp-row="{{ server.name }}">
+          <div class="mcp-copy">
+            <h3>{{ server.name }}</h3>
+            <p class="mcp-url">{{ server.url }}</p>
+            <small>
+              {{ server.transport }} ·
+              {% if server.status.value == "available" %}
+                已连接{{ " · " ~ server.latency_ms ~ "ms" if server.latency_ms is not none }} · {{ server.tools | length }} 个工具
+              {% elif server.status.value == "error" %}
+                连接失败
+              {% else %}
+                尚未探测
+              {% endif %}
+            </small>
+            {% if server.message %}<p class="mcp-message">{{ server.message }}</p>{% endif %}
+          </div>
+          <div class="mcp-actions">
+            <button class="task-action task-action-secondary" type="button" data-mcp-probe data-mcp-name="{{ server.name }}">探测</button>
+            <button class="task-action task-action-secondary" type="button" data-mcp-tools data-mcp-name="{{ server.name }}">工具</button>
+            <button class="switch {{ 'is-on' if server.enabled else '' }}" type="button"
+              data-mcp-toggle data-mcp-name="{{ server.name }}"
+              data-mcp-enabled="{{ '1' if server.enabled else '0' }}"
+              aria-pressed="{{ 'true' if server.enabled else 'false' }}">
+              <span class="switch-knob" aria-hidden="true"></span>
+              <span class="switch-label">{{ "已启用" if server.enabled else "已停用" }}</span>
+            </button>
+          </div>
+        </article>
+        {% else %}
+        <div class="task-empty">
+          <div class="task-empty-mark" aria-hidden="true">＋</div>
+          <h3>还没有配置 MCP 服务器</h3>
+          <p>复制 <code>mcp_servers.example.json</code> 为 <code>mcp_servers.json</code>，填入服务器地址后刷新本页。</p>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+
+  <section class="panel" aria-labelledby="image-title">
+    <div class="panel-heading">
+      <div>
+        <p class="section-label">IMAGE SOURCING</p>
+        <h2 id="image-title">文章配图能力</h2>
+      </div>
+    </div>
+    <div class="image-cap-grid">
+      <div class="image-cap-card {{ 'is-ready' if image_provider.ai_generation_available else '' }}">
+        <h3>AI 生图（阿里云百炼 qwen-image-3.0-pro）</h3>
+        <p>
+          {% if image_provider.ai_generation_available %}
+          已配置 {{ image_provider.dashscope_model }}（{{ image_provider.provider }}）；
+          限流 1 RPM，多图串行生成。配图方式由视觉策划自主决策。
+          {% else %}
+          未配置：在 .env 中设置 DASHSCOPE_API_KEY 并设 IMAGE_MODEL_PROVIDER=dashscope。
+          {% endif %}
+        </p>
+      </div>
+      <div class="image-cap-card {{ 'is-ready' if image_provider.web_search_available else '' }}">
+        <h3>网上找图（Wikimedia Commons）</h3>
+        <p>
+          {% if image_provider.web_search_available %}
+          已启用：只采用 CC0 / CC BY / CC BY-SA / 公有领域 等可商用授权，并记录作者与来源。
+          {% else %}
+          未启用：设置 IMAGE_SEARCH_PROVIDER=wikimedia。
+          {% endif %}
+        </p>
+      </div>
+      <div class="image-cap-card {{ 'is-ready' if web_search_status.available else '' }}">
+        <h3>联网搜索（研究阶段）</h3>
+        <p>
+          {% if web_search_status.available %}
+          已启用（{{ web_search_status.provider }}，经 Jina Reader 网关访问 Bing，无需密钥）：
+          研究节点会先搜索主题相关来源，再抓取官方站点提炼事实。
+          {% else %}
+          未启用：设置 WEB_SEARCH_PROVIDER=jina_bing。
+          {% endif %}
+        </p>
+      </div>
+    </div>
+  </section>
+</section>
+
+<dialog class="preview-dialog title-dialog" id="mcp-tools-dialog" aria-labelledby="mcp-tools-title">
+  <div class="preview-head">
+    <div><p class="section-label">MCP TOOLS</p><h2 id="mcp-tools-title">服务器工具</h2></div>
+    <button class="drawer-close" type="button" data-close-mcp-tools aria-label="关闭">×</button>
+  </div>
+  <div class="mcp-tools-body" id="mcp-tools-body">
+    <p class="page-summary">正在读取工具列表…</p>
+  </div>
+</dialog>
+{% endblock %}

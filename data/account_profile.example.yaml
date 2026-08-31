@@ -1,0 +1,8 @@
+# Fictional documentation example; contains no operating account data.
+# The current runtime profile is configured in app/container.py.
+account: 示例技术观察站
+positioning: 面向初学者的软件工程与工具使用教程
+content_pillars:
+  - 编程入门
+  - 开发工具体验
+  - 可复现的小型示例

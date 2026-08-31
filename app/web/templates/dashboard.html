@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="welcome-panel" aria-labelledby="welcome-title">
+  <div class="welcome-copy">
+    <p class="welcome-kicker">{{ greeting }}，{{ operator_name }}</p>
+    <h1 id="welcome-title">今天，继续把好内容做深。</h1>
+    <p class="welcome-summary">
+      {% if pending_task_count %}
+        {{ pending_task_count }} 个任务正在流转，先处理最接近完成的那一个。
+      {% else %}
+        当前没有待处理任务，可以从一个真实内容问题开始。
+      {% endif %}
+    </p>
+    <div class="welcome-actions">
+      <button class="button button-primary" type="button" data-open-drawer="task-drawer">
+        <span aria-hidden="true">＋</span> 创建内容任务
+      </button>
+      <a class="button button-secondary" href="/tasks" role="button">查看任务列表</a>
+    </div>
+  </div>
+  <div class="welcome-signal" aria-label="当前运营状态">
+    <div class="signal-orbit" aria-hidden="true">
+      <span></span><span></span><span></span>
+    </div>
+    <p>正在流转</p>
+    <strong>{{ pending_task_count | string | replace("0", "0") | upper }}</strong>
+    <small>内容任务</small>
+  </div>
+</section>
+
+<section class="workbench-grid" aria-label="当前工作状态">
+  <aside class="panel pipeline-panel" aria-labelledby="pipeline-title">
+    <div class="panel-heading">
+      <div>
+        <p class="section-label">ACTIVE FLOW</p>
+        <h2 id="pipeline-title">当前流水线</h2>
+      </div>
+      {% if active_task %}<code>#{{ active_task.short_id }}</code>{% endif %}
+    </div>
+
+    {% if active_task %}
+    <div class="active-task">
+      <span class="status-pill is-{{ active_task.status_tone }}">{{ active_task.status_label }}</span>
+      <h3>{{ active_task.title }}</h3>
+      <p>当前由 {{ model_name }} 驱动，正式发布始终等待人工确认。</p>
+    </div>
+    <ol class="aurora-track" aria-label="内容任务进度">
+      {% for stage in pipeline_stages %}
+      <li class="track-step is-{{ active_task.stage_states[loop.index0] }}">
+        <span class="track-node" aria-hidden="true">
+          {% if active_task.stage_states[loop.index0] == "done" %}✓{% else %}{{ loop.index }}{% endif %}
+        </span>
+        <span class="track-copy">
+          <strong>{{ stage }}</strong>
+          <small>
+            {{ "已完成" if active_task.stage_states[loop.index0] == "done" else "当前节点" if active_task.stage_states[loop.index0] == "active" else "等待执行" }}
+          </small>
+        </span>
+      </li>
+      {% endfor %}
+    </ol>
+    {% else %}
+    <div class="pipeline-empty" aria-label="内容任务进度">
+      <div class="empty-orbit" aria-hidden="true"><span></span></div>
+      <h3>流水线等待任务</h3>
+      <p>创建任务后，这里会展示从需求到微信草稿的完整进度。</p>
+    </div>
+    {% endif %}
+  </aside>
+
+  <section class="panel recent-panel" aria-labelledby="recent-title">
+    <div class="panel-heading">
+      <div>
+        <p class="section-label">RECENT WORK</p>
+        <h2 id="recent-title">最近任务</h2>
+      </div>
+      <a class="text-button" href="/tasks">查看全部 <span aria-hidden="true">↗</span></a>
+    </div>
+
+    <div class="task-list">
+      {% for task in task_views[:4] %}
+      <article class="task-row" data-task-card="{{ task.id }}">
+        <div class="task-sequence" aria-hidden="true">{{ "%02d" | format(loop.index) }}</div>
+        <div class="task-content">
+          <div class="task-title-row">
+            <h3>{{ task.title }}</h3>
+            <span class="status-pill is-{{ task.status_tone }}">{{ task.status_label }}</span>
+          </div>
+          <p>
+            {{ "指定主题" if task.mode == "fixed_topic" else "数据驱动文章" if task.mode == "data_driven_article" else "周度运营计划" }}
+            · 当前节点：{{ task.current_stage }}
+          </p>
+          {% if task.title_hint %}
+          <p class="task-hint">选定标题：{{ task.title_hint }}</p>
+          {% endif %}
+          {% if task.last_error and task.status in ["FAILED", "NEEDS_HUMAN"] %}
+          <p class="task-error">{{ task.last_error }}</p>
+          {% endif %}
+          <div class="task-foot">
+            <code>{{ task.short_id }}</code>
+            <time>{{ task.updated_label }}</time>
+          </div>
+          {% if task.running %}
+          <div class="task-steps" data-task-steps="{{ task.id }}" hidden aria-live="polite"></div>
+          {% endif %}
+        </div>
+        <div class="task-actions">
+          {% if task.action in ["run", "retry"] %}
+            {% if task.action == "run" and not task.title_hint %}
+            <button class="task-action task-action-secondary" type="button" data-propose-titles data-task-id="{{ task.id }}">
+              拟标题
+            </button>
+            {% endif %}
+          <button class="task-action" type="button" data-task-run data-task-id="{{ task.id }}">
+            {{ "重新运行" if task.action == "retry" else "运行任务" }}
+          </button>
+          {% elif task.action == "preview" %}
+          <button class="task-action" type="button" data-task-preview data-task-id="{{ task.id }}">
+            查看产物
+          </button>
+          <a class="task-action task-action-link" href="/review/{{ task.id }}">审阅</a>
+          {% elif task.action == "review" %}
+          <a class="task-action task-action-link" href="/review/{{ task.id }}">审阅</a>
+          {% else %}
+          <span class="task-stage-note">{{ task.current_stage }}</span>
+          {% endif %}
+        </div>
+      </article>
+      {% else %}
+      <div class="task-empty">
+        <div class="task-empty-mark" aria-hidden="true">＋</div>
+        <h3>从一个真实问题开始</h3>
+        <p>创建第一条内容任务后，研究、写作和审核进度会显示在这里。</p>
+        <button class="button button-secondary" type="button" data-open-drawer="task-drawer">
+          创建内容任务
+        </button>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+</section>
+{% endblock %}

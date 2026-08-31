@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="task-page" aria-labelledby="task-list-title">
+  <div class="section-heading">
+    <div>
+      <p class="section-label">RECENT WORK</p>
+      <h2 id="task-list-title">内容任务</h2>
+    </div>
+    <button class="icon-button" type="button" data-open-drawer="task-drawer" aria-label="创建内容任务">
+      <span aria-hidden="true">＋</span>
+    </button>
+  </div>
+
+  <p class="page-summary">
+    当前 {{ task_views | length }} 个任务记录，其中 {{ pending_task_count }} 个仍在流转。
+    正式发布始终等待人工确认。
+  </p>
+
+  <div class="panel task-panel">
+    <div class="task-list">
+      {% for task in task_views %}
+      <article class="task-row" data-task-card="{{ task.id }}">
+        <div class="task-sequence" aria-hidden="true">{{ "%02d" | format(loop.index) }}</div>
+        <div class="task-content">
+          <div class="task-title-row">
+            <h3>{{ task.title }}</h3>
+            <span class="status-pill is-{{ task.status_tone }}">{{ task.status_label }}</span>
+          </div>
+          <p>
+            {{ "指定主题" if task.mode == "fixed_topic" else "数据驱动文章" if task.mode == "data_driven_article" else "周度运营计划" }}
+            · 当前节点：{{ task.current_stage }}
+          </p>
+          {% if task.title_hint %}
+          <p class="task-hint">选定标题：{{ task.title_hint }}</p>
+          {% endif %}
+          {% if task.last_error and task.status in ["FAILED", "NEEDS_HUMAN"] %}
+          <p class="task-error">{{ task.last_error }}</p>
+          {% endif %}
+          <div class="task-foot">
+            <code>{{ task.short_id }}</code>
+            <time>{{ task.updated_label }}</time>
+          </div>
+          {% if task.running %}
+          <div class="task-steps" data-task-steps="{{ task.id }}" hidden aria-live="polite"></div>
+          {% endif %}
+        </div>
+        <div class="task-actions">
+          {% if task.action in ["run", "retry"] %}
+            {% if task.action == "run" and not task.title_hint %}
+            <button class="task-action task-action-secondary" type="button" data-propose-titles data-task-id="{{ task.id }}">
+              拟标题
+            </button>
+            {% endif %}
+          <button class="task-action" type="button" data-task-run data-task-id="{{ task.id }}">
+            {{ "重新运行" if task.action == "retry" else "运行任务" }}
+          </button>
+          {% elif task.action == "preview" %}
+          <button class="task-action" type="button" data-task-preview data-task-id="{{ task.id }}">
+            查看产物
+          </button>
+          {% if task.can_push_draft and draft_enabled %}
+          <button class="task-action" type="button" data-push-draft data-task-id="{{ task.id }}">
+            推草稿
+          </button>
+          {% endif %}
+          <a class="task-action task-action-link" href="/review/{{ task.id }}">审阅</a>
+          {% elif task.action == "review" %}
+          <a class="task-action task-action-link" href="/review/{{ task.id }}">审阅</a>
+          {% else %}
+          <span class="task-stage-note">{{ task.current_stage }}</span>
+          {% endif %}
+          {% if task.status not in ["PUBLISHED", "POST_ANALYZED"] %}
+          <button class="task-action task-action-secondary" type="button" data-task-delete data-task-id="{{ task.id }}">
+            删除
+          </button>
+          {% endif %}
+        </div>
+      </article>
+      {% else %}
+      <div class="task-empty">
+        <div class="task-empty-mark" aria-hidden="true">＋</div>
+        <h3>从一个真实问题开始</h3>
+        <p>创建第一条内容任务后，研究、写作和审核进度会显示在这里。</p>
+        <button class="button button-secondary" type="button" data-open-drawer="task-drawer">
+          创建内容任务
+        </button>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<dialog class="preview-dialog title-dialog" id="push-draft-dialog" aria-labelledby="push-draft-title">
+  <div class="preview-head">
+    <div><p class="section-label">PUSH DRAFT</p><h2 id="push-draft-title">推送到微信草稿箱</h2></div>
+    <button class="drawer-close" type="button" data-close-push-draft aria-label="关闭">×</button>
+  </div>
+  <div class="push-draft-body">
+    <p class="page-summary">推草稿需要封面图：可选择图片上传，或填写已有封面素材编号。</p>
+    <label class="file-drop" for="push-draft-cover">
+      <span class="file-drop-icon" aria-hidden="true">↑</span>
+      <strong>选择封面图片</strong>
+      <small>支持 jpg/png/gif/bmp，≤10MB</small>
+      <input id="push-draft-cover" type="file" accept="image/jpeg,image/png,image/gif,image/bmp" hidden>
+    </label>
+    <p class="selected-file" id="push-draft-file-name" aria-live="polite">未选择文件</p>
+    <label class="field-label" for="push-draft-media-id">或填写已有封面素材编号</label>
+    <input id="push-draft-media-id" type="text" placeholder="请输入封面素材编号" autocomplete="off">
+    <p class="form-error" data-push-draft-error role="alert"></p>
+    <div class="push-draft-actions">
+      <button class="button button-secondary" type="button" data-close-push-draft>取消</button>
+      <button class="button button-primary" type="button" data-confirm-push-draft>确认推送</button>
+    </div>
+  </div>
+</dialog>
+{% endblock %}

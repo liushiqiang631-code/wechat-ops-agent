@@ -1,0 +1,11 @@
+{
+  "servers": [
+    {
+      "name": "example-filesystem",
+      "url": "https://mcp.example.com/mcp",
+      "transport": "streamable_http",
+      "description": "示例 MCP 服务器（streamable HTTP），复制为 mcp_servers.json 后修改",
+      "enabled": false
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+name: wechat-ops-agent
+
+services:
+  wechat-ops:
+    build: .
+    env_file:
+      - .env
+    environment:
+      # SQLite 数据放在持久卷中，容器重建不丢任务与指标
+      DATABASE_URL: sqlite:////app/runtime/wechat_ops.db
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./outputs:/app/outputs
+      - ./data:/app/data:ro
+      - ./runtime:/app/runtime
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s

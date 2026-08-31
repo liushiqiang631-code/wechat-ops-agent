@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="review-page">
+  {% if not review.ok %}
+  <div class="panel review-empty">
+    <p class="section-label">HUMAN REVIEW</p>
+    <h2>审阅不可用</h2>
+    <p>{{ review.reason }}</p>
+    <a class="button button-secondary" href="/tasks">返回内容任务</a>
+  </div>
+  {% else %}
+  <div class="section-heading">
+    <div>
+      <p class="section-label">HUMAN REVIEW</p>
+      <h2>{{ review.title }}</h2>
+    </div>
+    <span class="status-pill is-{{ 'success' if review.is_reviewed else 'warning' }}">
+      {{ review.status }}
+    </span>
+  </div>
+
+  <div class="review-layout">
+    <div class="review-pane">
+      <div class="review-pane-head">
+        <p class="section-label">WECHAT PREVIEW</p>
+        <h3>排版预览</h3>
+      </div>
+      <iframe class="review-frame" id="review-frame" title="排版预览" sandbox="allow-popups"
+        srcdoc="{{ review.html }}"></iframe>
+    </div>
+    <div class="review-pane">
+      <div class="review-pane-head">
+        <p class="section-label">FINAL MARKDOWN</p>
+        <h3>人工终稿</h3>
+      </div>
+      <textarea id="review-markdown" class="review-editor" rows="20" spellcheck="false">{{ review.final_markdown }}</textarea>
+      <div class="review-actions">
+        <button class="button button-primary" type="button" id="save-final" data-task-id="{{ review.task_id }}">
+          保存终稿并计算差异
+        </button>
+        <button class="button button-secondary" type="button" id="mark-reviewed" data-task-id="{{ review.task_id }}"
+          {{ 'disabled' if review.is_reviewed else '' }}>
+          标记已审阅
+        </button>
+        <button class="button button-secondary" type="button" id="repurpose" data-task-id="{{ review.task_id }}">
+          内容复用
+        </button>
+      </div>
+      <div class="diff-box" id="diff-box" hidden>
+        <h3>与初稿的差异</h3>
+        <p class="diff-summary" id="diff-summary"></p>
+        <ul id="diff-list"></ul>
+      </div>
+    </div>
+  </div>
+
+  <section class="genui-stage" id="genui-stage" data-genui-task="{{ review.task_id }}" hidden>
+    <div class="genui-stage-head">
+      <div>
+        <p class="section-label">GENERATIVE UI · SAFE MODE</p>
+        <h2>文章决策面板</h2>
+      </div>
+      <span class="genui-protocol">DSH-UI / 1.0</span>
+    </div>
+    <div class="genui-canvas" id="genui-canvas" aria-live="polite"></div>
+  </section>
+
+  <section class="panel repurpose-panel" id="repurpose-panel" hidden aria-labelledby="repurpose-title">
+    <div class="panel-heading">
+      <div>
+        <p class="section-label">REPURPOSE</p>
+        <h2 id="repurpose-title">内容复用</h2>
+      </div>
+    </div>
+    <div class="repurpose-grid" id="repurpose-content"></div>
+  </section>
+  {% endif %}
+</section>
+
+{% if review.ok %}
+<script type="application/json" id="review-data">{{ {"html": review.html, "generated_markdown": review.generated_markdown, "final_markdown": review.final_markdown} | tojson }}</script>
+{% endif %}
+{% endblock %}
