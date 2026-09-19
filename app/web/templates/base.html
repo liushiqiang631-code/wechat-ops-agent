@@ -4,45 +4,108 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
-  <title>{{ account_name }} · 极光运营工作台</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='10' fill='%235b54e7'/%3E%3Cpath d='M8 22c2.7-8 6.2-12 10.8-12 2.4 0 4.3 1.2 5.7 3.6-2-1-3.7-1.4-5.2-1.4-4.6 0-8.4 3.2-11.3 9.8Z' fill='white'/%3E%3Ccircle cx='8.5' cy='22' r='3.4' fill='white'/%3E%3C/svg%3E">
+  <title>{{ account_name }} · 微信公众号运营助手 AGENT</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%2307c160'/%3E%3Cellipse cx='13' cy='13.5' rx='8' ry='6.6' fill='white'/%3E%3Cellipse cx='20.5' cy='19' rx='6.4' ry='5.4' fill='white' fill-opacity='.92'/%3E%3Ccircle cx='10.4' cy='12.6' r='1.15' fill='%2307c160'/%3E%3Ccircle cx='15.6' cy='12.6' r='1.15' fill='%2307c160'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="/static/app.css?v={{ asset_version }}">
   <script defer src="/static/app.js?v={{ asset_version }}"></script>
 </head>
 <body>
-  <div class="app-shell">
-    <header class="topbar">
-      <a class="brand" href="/" aria-label="返回运营工作台">
-        <span class="brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 28 28" role="img">
-            <path d="M7 18.5c2.2-6.8 5.3-10.3 9.2-10.3 2.5 0 4.4 1.4 5.8 4.1-1.8-1-3.5-1.5-5.1-1.5-4.2 0-7.5 2.6-9.9 7.7Z"/>
-            <circle cx="8" cy="19" r="3.2"/>
-          </svg>
-        </span>
-        <span>
-          <strong>Agent 运营中心</strong>
-          <small>{{ account_name }}</small>
-        </span>
+<div class="app-shell">
+
+  <aside class="sidebar">
+    <a class="brand" href="/" aria-label="返回总览">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" role="img">
+          <ellipse cx="13" cy="13.5" rx="8" ry="6.6"/>
+          <ellipse cx="20.5" cy="19" rx="6.4" ry="5.4" class="brand-mark-soft"/>
+          <circle class="brand-mark-eye" cx="10.4" cy="12.6" r="1.15"/>
+          <circle class="brand-mark-eye" cx="15.6" cy="12.6" r="1.15"/>
+        </svg>
+      </span>
+      <span class="brand-copy">
+        <strong>微信公众号运营助手 AGENT</strong>
+        <small>让优质内容持续发生</small>
+      </span>
+    </a>
+
+    <nav class="side-nav" aria-label="功能导航">
+      {% set nav_items = [
+        ("overview", "/", "总览", "M3 10.5 12 3l9 7.5M5.5 9v11h13V9"),
+        ("topics", "/topics", "选题中心", "M12 3a6 6 0 0 1 3.4 10.9c-.6.5-.9 1.1-.9 1.9v.7h-5v-.7c0-.8-.3-1.4-.9-1.9A6 6 0 0 1 12 3Zm-2.4 17h4.8"),
+        ("tasks", "/tasks", "AI 写稿", "M14.5 4.5 19 9 8.5 19.5 4 20l.5-4.5Zm2 2 1.5 1.5"),
+        ("media", "/media", "配图生成", "M4 5.5h16v13H4Zm2.5 9 3-3.5 3 3 2.5-2.5 2.5 3M9.3 9.6a1.1 1.1 0 1 1-2.2 0 1.1 1.1 0 0 1 2.2 0Z"),
+        ("drafts", "/drafts", "草稿箱同步", "M3.5 5.5h17v13h-17Zm0 4h17M7 13h6"),
+        ("schedule", "/schedule", "定时群发", "M12.5 3.5a8.5 8.5 0 1 1-8.9 10M12.5 7.5v4l2.8 1.8M3.5 4.5v4h4"),
+        ("data", "/data", "数据分析", "M4 20V10m5.3 10V4m5.4 16v-8m5.3 8V7"),
+        ("fans", "/fans", "粉丝运营", "M15.5 20v-1.6a4 4 0 0 0-4-4h-5a4 4 0 0 0-4 4V20M9 10.8a3.6 3.6 0 1 0 0-7.2 3.6 3.6 0 0 0 0 7.2Zm6.5-.4a3 3 0 1 0-1.7-5.5M17.5 14.5a4 4 0 0 1 4 4V20"),
+        ("calendar", "/calendar", "运营日历", "M4 6h16v14H4Zm0 4.5h16M8.5 3.5V7m7-3.5V7"),
+        ("workflow", "/workflow", "工作流", "M6 4.5v5a4 4 0 0 0 4 4h8.5m0 0-3-3m3 3-3 3M6 15.5v4"),
+        ("settings", "/settings", "系统设置", "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm7.4-3a7.4 7.4 0 0 0-.1-1.2l2-1.5-2-3.4-2.3 1a7.6 7.6 0 0 0-2-1.2L14.6 3h-4l-.4 2.5a7.6 7.6 0 0 0-2 1.2l-2.3-1-2 3.4 2 1.5a7.4 7.4 0 0 0 0 2.4l-2 1.5 2 3.4 2.3-1a7.6 7.6 0 0 0 2 1.2l.4 2.5h4l.4-2.5a7.6 7.6 0 0 0 2-1.2l2.3 1 2-3.4-2-1.5c.1-.4.1-.8.1-1.2Z")
+      ] %}
+      {% for key, href, label, path in nav_items %}
+      <a class="side-link {{ 'is-active' if active_nav == key else '' }}" href="{{ href }}">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="{{ path }}"/></svg>
+        <span>{{ label }}</span>
+        {% if key == "tasks" and review_pending_count %}
+        <span class="side-badge" aria-label="{{ review_pending_count }} 篇待审阅">{{ review_pending_count }}</span>
+        {% endif %}
       </a>
+      {% endfor %}
+    </nav>
 
-      <nav class="main-nav" aria-label="工作台导航">
-        <a class="{{ 'is-active' if active_nav == 'workbench' else '' }}" href="/">工作台</a>
-        <a class="{{ 'is-active' if active_nav == 'tasks' else '' }}" href="/tasks">内容任务</a>
-        <a class="{{ 'is-active' if active_nav == 'calendar' else '' }}" href="/calendar">内容日历</a>
-        <a class="{{ 'is-active' if active_nav == 'data' else '' }}" href="/data">数据复盘</a>
-        <a class="{{ 'is-active' if active_nav == 'agent' else '' }}" href="/agent">Agent 能力</a>
-      </nav>
+    <div class="side-agent" aria-hidden="true">
+      <span class="side-agent-bot">
+        <svg viewBox="0 0 48 48" role="img">
+          <rect x="8" y="14" width="32" height="24" rx="9" class="bot-body"/>
+          <circle cx="18.5" cy="25.5" r="3.2" class="bot-eye"/>
+          <circle cx="29.5" cy="25.5" r="3.2" class="bot-eye"/>
+          <circle cx="17.4" cy="24.6" r="1.1" class="bot-glint"/>
+          <circle cx="28.4" cy="24.6" r="1.1" class="bot-glint"/>
+          <path d="M20 31.5c2.4 1.8 5.6 1.8 8 0" class="bot-smile"/>
+          <line x1="24" y1="9" x2="24" y2="14" class="bot-antenna"/>
+          <circle cx="24" cy="7.5" r="2.4" class="bot-antenna-dot"/>
+          <rect x="1" y="22" width="4.5" height="9" rx="2.2" class="bot-ear"/>
+          <rect x="42.5" y="22" width="4.5" height="9" rx="2.2" class="bot-ear"/>
+        </svg>
+      </span>
+      <p class="side-agent-title">AGENT 正在为你工作</p>
+      <p class="side-agent-sub">智能规划 · 自动执行</p>
+      <p class="side-agent-foot">让运营更简单</p>
+    </div>
+  </aside>
 
-      <div class="topbar-status" aria-label="系统连接状态">
-        <div class="connection-chip {{ 'is-ready' if model_status.configured else 'is-muted' }}">
+  <div class="main-column">
+    <header class="topbar">
+      <form class="topbar-search" role="search" action="/tasks" method="get" aria-label="站内搜索">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+        <input type="search" name="q" value="{{ request.query_params.get('q', '') }}"
+               placeholder="搜索文章、选题、粉丝或功能" aria-label="搜索文章、选题、粉丝或功能">
+        <kbd aria-hidden="true">⌘ K</kbd>
+      </form>
+
+      <div class="topbar-status">
+        <span class="connect-chip {{ 'is-ready' if wechat_status.configured else 'is-muted' }}">
           <span class="status-dot" aria-hidden="true"></span>
-          <span><strong>{{ model_name }}</strong><small>{{ model_status.label }}</small></span>
+          {{ "已连接公众号" if wechat_status.configured else "等待配置公众号" }}
+        </span>
+        <div class="account-chip" aria-label="当前公众号">
+          <span class="account-avatar" aria-hidden="true">{{ account_name[:1] }}</span>
+          <span class="account-copy">
+            <strong>{{ account_name }}</strong>
+            <small>订阅号 · {{ wechat_status.label }}</small>
+          </span>
         </div>
-        <div class="connection-chip is-{{ wechat_status.tone }}">
-          <span class="status-dot" aria-hidden="true"></span>
-          <span><strong>微信公众号</strong><small>{{ wechat_status.label }}</small></span>
+        <a class="bell-chip" href="/tasks" aria-label="通知：{{ review_pending_count }} 篇文章待人工审阅">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 15.5V11a6 6 0 1 0-12 0v4.5L4.5 18h15Zm-4.5 2.5a1.8 1.8 0 0 1-3 0"/></svg>
+          {% if review_pending_count %}<span class="bell-dot" aria-hidden="true"></span>{% endif %}
+        </a>
+        <div class="operator-chip">
+          <span class="operator-avatar" aria-hidden="true">{{ operator_name[:1] }}</span>
+          <span class="operator-copy">
+            <strong>{{ operator_name }}</strong>
+            <small>本地版</small>
+          </span>
         </div>
-        <time class="local-time">{{ local_time }}</time>
       </div>
     </header>
 
@@ -54,7 +117,7 @@
     </div>
     {% endif %}
 
-    <main class="dashboard">
+    <main class="page">
       {% block content %}{% endblock %}
     </main>
 
@@ -74,84 +137,112 @@
       <a href="/docs">API 文档 <span aria-hidden="true">↗</span></a>
     </footer>
   </div>
+</div>
 
-  <div class="drawer" id="task-drawer" role="dialog" aria-modal="true"
-       aria-labelledby="task-drawer-title" aria-hidden="true">
-    <button class="drawer-backdrop" type="button" data-close-drawer aria-label="关闭创建任务面板"></button>
-    <div class="drawer-panel" tabindex="-1">
-      <div class="drawer-head">
-        <div><p class="section-label">NEW CONTENT</p><h2 id="task-drawer-title">创建内容任务</h2></div>
-        <button class="drawer-close" type="button" data-close-drawer aria-label="关闭">×</button>
-      </div>
-      <form id="task-form" class="drawer-form">
-        <fieldset class="mode-options">
-          <legend>选择任务模式</legend>
-          <label class="mode-card">
-            <input type="radio" name="mode" value="fixed_topic" checked>
-            <span><strong>指定主题</strong><small>从一个明确问题开始</small></span>
-          </label>
-          <label class="mode-card">
-            <input type="radio" name="mode" value="data_driven_article">
-            <span><strong>数据驱动文章</strong><small>根据近期表现选择主题</small></span>
-          </label>
-          <label class="mode-card">
-            <input type="radio" name="mode" value="weekly_plan">
-            <span><strong>周度运营计划</strong><small>生成一周内容安排</small></span>
-          </label>
-        </fieldset>
-        <label class="field-label" for="request">本次要解决什么内容问题？</label>
-        <textarea id="request" name="request" rows="6" required minlength="3"
-          placeholder="例如：面向有 Python 基础的开发者，解释 Agent 工程中的恢复机制"></textarea>
-        <p class="field-help">系统会保存每个节点的产物；正式发布不会自动执行。</p>
-        <p class="form-error" data-form-error role="alert"></p>
-        <button class="button button-primary button-full" type="submit">创建内容任务</button>
-      </form>
+<div class="drawer" id="task-drawer" role="dialog" aria-modal="true"
+     aria-labelledby="task-drawer-title" aria-hidden="true">
+  <button class="drawer-backdrop" type="button" data-close-drawer aria-label="关闭创建任务面板"></button>
+  <div class="drawer-panel" tabindex="-1">
+    <div class="drawer-head">
+      <div><p class="section-label">NEW CONTENT</p><h2 id="task-drawer-title">创建内容任务</h2></div>
+      <button class="drawer-close" type="button" data-close-drawer aria-label="关闭">×</button>
     </div>
-  </div>
-
-  <div class="drawer" id="import-drawer" role="dialog" aria-modal="true"
-       aria-labelledby="import-drawer-title" aria-hidden="true">
-    <button class="drawer-backdrop" type="button" data-close-drawer aria-label="关闭导入数据面板"></button>
-    <div class="drawer-panel" tabindex="-1">
-      <div class="drawer-head">
-        <div><p class="section-label">DATA IMPORT</p><h2 id="import-drawer-title">导入运营数据</h2></div>
-        <button class="drawer-close" type="button" data-close-drawer aria-label="关闭">×</button>
-      </div>
-      <form id="import-form" class="drawer-form" enctype="multipart/form-data">
-        <label class="file-drop" for="metrics-file">
-          <span class="file-drop-icon" aria-hidden="true">↑</span>
-          <strong>选择 CSV 或 XLSX 文件</strong>
-          <small>支持微信公众号后台导出的文章数据</small>
-          <input id="metrics-file" type="file" name="file" accept=".csv,.xlsx" required>
+    <form id="task-form" class="drawer-form">
+      <fieldset class="mode-options">
+        <legend>选择任务模式</legend>
+        <label class="mode-card">
+          <input type="radio" name="mode" value="fixed_topic" checked>
+          <span><strong>指定主题</strong><small>从一个明确问题开始</small></span>
         </label>
-        <p class="selected-file" id="selected-file" aria-live="polite">尚未选择文件</p>
-        <div class="field-example">
-          <strong>识别字段示例</strong>
-          <code>日期、文章ID、标题、阅读人数、分享人数、收藏人数、新增关注</code>
-        </div>
-        <p class="form-error" data-form-error role="alert"></p>
-        <button class="button button-primary button-full" type="submit">导入并刷新指标</button>
-      </form>
+        <label class="mode-card">
+          <input type="radio" name="mode" value="data_driven_article">
+          <span><strong>数据驱动文章</strong><small>根据近期表现选择主题</small></span>
+        </label>
+        <label class="mode-card">
+          <input type="radio" name="mode" value="weekly_plan">
+          <span><strong>周度运营计划</strong><small>生成一周内容安排</small></span>
+        </label>
+      </fieldset>
+      <label class="field-label" for="request">本次要解决什么内容问题？</label>
+      <textarea id="request" name="request" rows="6" required minlength="3"
+        placeholder="例如：面向有 Python 基础的开发者，解释 Agent 工程中的恢复机制"></textarea>
+      <p class="field-help">系统会保存每个节点的产物；正式发布不会自动执行。</p>
+      <p class="form-error" data-form-error role="alert"></p>
+      <button class="button button-primary button-full" type="submit">创建内容任务</button>
+    </form>
+  </div>
+</div>
+
+<div class="drawer" id="import-drawer" role="dialog" aria-modal="true"
+     aria-labelledby="import-drawer-title" aria-hidden="true">
+  <button class="drawer-backdrop" type="button" data-close-drawer aria-label="关闭导入数据面板"></button>
+  <div class="drawer-panel" tabindex="-1">
+    <div class="drawer-head">
+      <div><p class="section-label">DATA IMPORT</p><h2 id="import-drawer-title">导入运营数据</h2></div>
+      <button class="drawer-close" type="button" data-close-drawer aria-label="关闭">×</button>
+    </div>
+    <form id="import-form" class="drawer-form" enctype="multipart/form-data">
+      <label class="file-drop" for="metrics-file">
+        <span class="file-drop-icon" aria-hidden="true">↑</span>
+        <strong>选择 CSV 或 XLSX 文件</strong>
+        <small>支持微信公众号后台导出的文章数据</small>
+        <input id="metrics-file" type="file" name="file" accept=".csv,.xlsx" required>
+      </label>
+      <p class="selected-file" id="selected-file" aria-live="polite">尚未选择文件</p>
+      <div class="field-example">
+        <strong>识别字段示例</strong>
+        <code>日期、文章ID、标题、阅读人数、分享人数、收藏人数、新增关注</code>
+      </div>
+      <p class="form-error" data-form-error role="alert"></p>
+      <button class="button button-primary button-full" type="submit">导入并刷新指标</button>
+      <button class="button button-secondary button-full" type="button" data-import-demo>
+        导入虚构示例数据（体验用）
+      </button>
+    </form>
+  </div>
+</div>
+
+<dialog class="preview-dialog" id="preview-dialog" aria-labelledby="preview-title">
+  <div class="preview-head">
+    <div><p class="section-label">WECHAT PREVIEW</p><h2 id="preview-title">微信文章预览</h2></div>
+    <button class="drawer-close" type="button" data-close-preview aria-label="关闭预览">×</button>
+  </div>
+  <iframe id="preview-frame" title="微信文章内容预览" sandbox="allow-popups"></iframe>
+</dialog>
+
+<dialog class="preview-dialog title-dialog" id="title-dialog" aria-labelledby="title-dialog-title">
+  <div class="preview-head">
+    <div><p class="section-label">TITLE IDEAS</p><h2 id="title-dialog-title">选择标题</h2></div>
+    <button class="drawer-close" type="button" data-close-title aria-label="关闭">×</button>
+  </div>
+  <p class="page-summary">选择一个标题作为写作约束，正式写作时会被采用。</p>
+  <div class="title-candidates" id="title-candidates"></div>
+</dialog>
+
+<dialog class="preview-dialog title-dialog" id="push-draft-dialog" aria-labelledby="push-draft-title">
+  <div class="preview-head">
+    <div><p class="section-label">PUSH DRAFT</p><h2 id="push-draft-title">推送到微信草稿箱</h2></div>
+    <button class="drawer-close" type="button" data-close-push-draft aria-label="关闭">×</button>
+  </div>
+  <div class="push-draft-body">
+    <p class="page-summary">推草稿需要封面图：可选择图片上传，或填写已有封面素材编号。</p>
+    <label class="file-drop" for="push-draft-cover">
+      <span class="file-drop-icon" aria-hidden="true">↑</span>
+      <strong>选择封面图片</strong>
+      <small>支持 jpg/png/gif/bmp，≤10MB</small>
+      <input id="push-draft-cover" type="file" accept="image/jpeg,image/png,image/gif,image/bmp" hidden>
+    </label>
+    <p class="selected-file" id="push-draft-file-name" aria-live="polite">未选择文件</p>
+    <label class="field-label" for="push-draft-media-id">或填写已有封面素材编号</label>
+    <input id="push-draft-media-id" type="text" placeholder="请输入封面素材编号" autocomplete="off">
+    <p class="form-error" data-push-draft-error role="alert"></p>
+    <div class="push-draft-actions">
+      <button class="button button-secondary" type="button" data-close-push-draft>取消</button>
+      <button class="button button-primary" type="button" data-confirm-push-draft>确认推送</button>
     </div>
   </div>
+</dialog>
 
-  <dialog class="preview-dialog" id="preview-dialog" aria-labelledby="preview-title">
-    <div class="preview-head">
-      <div><p class="section-label">WECHAT PREVIEW</p><h2 id="preview-title">微信文章预览</h2></div>
-      <button class="drawer-close" type="button" data-close-preview aria-label="关闭预览">×</button>
-    </div>
-    <iframe id="preview-frame" title="微信文章内容预览" sandbox="allow-popups"></iframe>
-  </dialog>
-
-  <dialog class="preview-dialog title-dialog" id="title-dialog" aria-labelledby="title-dialog-title">
-    <div class="preview-head">
-      <div><p class="section-label">TITLE IDEAS</p><h2 id="title-dialog-title">选择标题</h2></div>
-      <button class="drawer-close" type="button" data-close-title aria-label="关闭">×</button>
-    </div>
-    <p class="page-summary">选择一个标题作为写作约束，正式写作时会被采用。</p>
-    <div class="title-candidates" id="title-candidates"></div>
-  </dialog>
-
-  <div class="toast-region" id="toast-region" role="status" aria-live="polite"></div>
+<div class="toast-region" id="toast-region" role="status" aria-live="polite"></div>
 </body>
 </html>

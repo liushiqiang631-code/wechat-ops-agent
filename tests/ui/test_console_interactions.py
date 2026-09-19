@@ -35,6 +35,40 @@ def test_console_script_has_accessible_drawers_and_real_actions(tmp_path: Path):
     assert "window.alert" not in script.text
 
 
+def test_console_script_wires_overview_widgets(tmp_path: Path):
+    script = build_client(tmp_path).get("/static/app.js")
+
+    assert script.status_code == 200
+    # 一键导入虚构示例数据（走真实导入管线）
+    assert "/api/v1/metrics/import-demo" in script.text
+    # 总览文章生成表单：主题 + 关键词标签 + 目标人群/风格
+    assert "composer-topic" in script.text
+    assert "keyword-chips" in script.text
+    assert "composer-audience" in script.text
+    # 抽屉预选任务模式（周计划入口）
+    assert "presetMode" in script.text
+    # 配图标签页与趋势区间切换
+    assert "data-pane" in script.text
+    assert "data-trend" in script.text
+
+
+def test_demo_import_endpoint_inserts_fictional_records(tmp_path: Path):
+    client = build_client(tmp_path)
+
+    first = client.post("/api/v1/metrics/import-demo")
+    second = client.post("/api/v1/metrics/import-demo")
+
+    assert first.status_code == 200
+    assert first.json()["demo"] is True
+    assert first.json()["imported"] > 0
+    # 幂等：同样的示例数据重复导入不会翻倍
+    assert second.json()["imported"] == 0
+
+    overview = client.get("/api/v1/metrics/overview")
+    assert overview.status_code == 200
+    assert overview.json()["windows"]["7d"]["article_count"] == 5
+
+
 def test_drawer_actions_match_task_and_import_api_contracts(tmp_path: Path):
     client = build_client(tmp_path)
 

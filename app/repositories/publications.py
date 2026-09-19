@@ -55,6 +55,16 @@ class PublicationRepository:
                 raise KeyError(idempotency_key)
             return self._receipt_model(row)
 
+    def list_draft_receipts(self, limit: int = 50) -> list[DraftReceipt]:
+        with self.sessions() as session:
+            rows = (
+                session.query(DraftReceiptRow)
+                .order_by(DraftReceiptRow.created_at.desc())
+                .limit(limit)
+                .all()
+            )
+            return [self._receipt_model(row) for row in rows]
+
     def register(self, publication: PublicationRecord) -> PublicationRecord:
         with self.sessions.begin() as session:
             row = session.get(PublicationRow, publication.task_id)

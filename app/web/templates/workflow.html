@@ -4,8 +4,8 @@
 <section class="agent-page" aria-labelledby="agent-title">
   <div class="section-heading">
     <div>
-      <p class="section-label">AGENT CAPABILITIES</p>
-      <h2 id="agent-title">Agent 能力管理</h2>
+      <p class="section-label">AGENT WORKFLOW</p>
+      <h2 id="agent-title">工作流与能力</h2>
     </div>
   </div>
   <p class="page-summary">
@@ -115,7 +115,7 @@
           已配置 {{ image_provider.dashscope_model }}（{{ image_provider.provider }}）；
           限流 1 RPM，多图串行生成。配图方式由视觉策划自主决策。
           {% else %}
-          未配置：在 .env 中设置 DASHSCOPE_API_KEY 并设 IMAGE_MODEL_PROVIDER=dashscope。
+          未配置：在 .env 中填写图片服务密钥并设 IMAGE_MODEL_PROVIDER=dashscope。
           {% endif %}
         </p>
       </div>

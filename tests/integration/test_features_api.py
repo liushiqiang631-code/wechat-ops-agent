@@ -190,6 +190,58 @@ def test_mark_published_backfills_topic_performance_and_shows_on_data(tmp_path: 
     assert "已回填" in data_page.text
 
 
+def test_backfill_rejects_ambiguous_articles_with_the_same_title(tmp_path: Path):
+    client, container = build_client(tmp_path)
+    task = client.post(
+        "/api/v1/tasks",
+        json={
+            "mode": "fixed_topic",
+            "request": "LangGraph 检查点实战",
+            "topic": "LangGraph 检查点实战",
+        },
+    ).json()
+    advance(
+        container,
+        task["id"],
+        TaskStatus.PLANNED,
+        TaskStatus.RESEARCHED,
+        TaskStatus.WRITTEN,
+        TaskStatus.ASSETS_READY,
+        TaskStatus.REVIEWED,
+        TaskStatus.FORMATTED,
+        TaskStatus.HUMAN_REVIEWED,
+    )
+    assert (
+        client.post(
+            f"/api/v1/articles/{task['id']}/mark-published",
+            json={
+                "task_id": task["id"],
+                "article_url": "https://mp.weixin.qq.com/s/abc",
+                "published_at": "2026-07-10T12:00:00+08:00",
+                "draft_media_id": "m1",
+            },
+        ).status_code
+        == 200
+    )
+    csv_body = (
+        "日期,文章ID,标题,阅读人数,分享人数,收藏人数,新增关注\n"
+        "2026-07-09,a-1,LangGraph 检查点实战,150,20,5,3\n"
+        "2026-07-09,a-2,LangGraph 检查点实战,80,10,2,1\n"
+    ).encode("utf-8-sig")
+    assert (
+        client.post(
+            "/api/v1/metrics/import",
+            files={"file": ("metrics.csv", csv_body, "text/csv")},
+        ).status_code
+        == 200
+    )
+
+    backfilled = client.post(f"/api/v1/articles/{task['id']}/backfill-metrics")
+
+    assert backfilled.status_code == 409
+    assert "多个文章" in backfilled.json()["detail"]
+
+
 def test_calendar_page_renders_plan_board_or_empty_state(tmp_path: Path):
     client, container = build_client(tmp_path)
 
@@ -199,9 +251,7 @@ def test_calendar_page_renders_plan_board_or_empty_state(tmp_path: Path):
     assert "还没有周计划" in empty.text
 
     # A weekly plan task with a plan artifact renders a board.
-    task = container.tasks.create(
-        TaskSpec(mode=TaskMode.WEEKLY_PLAN, request="安排下周内容")
-    )
+    task = container.tasks.create(TaskSpec(mode=TaskMode.WEEKLY_PLAN, request="安排下周内容"))
     container.artifacts.write_json(
         task.id,
         "weekly_plan",

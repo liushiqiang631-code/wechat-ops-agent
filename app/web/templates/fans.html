@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="fans-page" aria-labelledby="fans-page-title">
+  <div class="section-heading">
+    <div>
+      <p class="section-label">FAN OPERATIONS</p>
+      <h2 id="fans-page-title">粉丝运营</h2>
+    </div>
+    <div class="heading-actions">
+      <button class="button button-secondary" type="button" data-open-drawer="import-drawer">导入数据</button>
+      <button class="button button-secondary" type="button" data-import-demo>导入示例数据</button>
+    </div>
+  </div>
+
+  <p class="page-summary">
+    关注与互动数据全部来自导入的运营指标，按日汇总；{{ fans_page.range_label }}趋势与高互动文章随导入自动刷新。
+  </p>
+
+  <div class="fans-cards fans-cards-page">
+    {% for card in fans_page.summary.cards %}
+    <div class="fans-card is-{{ card.tone }}">
+      <span class="fans-card-icon" aria-hidden="true">
+        {% if card.tone == "green" %}
+        <svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>
+        {% elif card.tone == "blue" %}
+        <svg viewBox="0 0 24 24"><path d="M15.5 20v-1.6a4 4 0 0 0-4-4h-5a4 4 0 0 0-4 4V20M9 10.8a3.6 3.6 0 1 0 0-7.2 3.6 3.6 0 0 0 0 7.2Z"/></svg>
+        {% else %}
+        <svg viewBox="0 0 24 24"><path d="M4 19.5 10 13l3.5 3.5L20 9.5M20 9.5h-4.5m4.5 0V14"/></svg>
+        {% endif %}
+      </span>
+      <div>
+        <p>{{ card.label }}</p>
+        <strong>{{ card.value }}</strong>
+        <small>{{ card.hint }}</small>
+      </div>
+    </div>
+    {% endfor %}
+    <div class="fans-card is-violet">
+      <span class="fans-card-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M12 20.5S4 15 4 9.8A4.4 4.4 0 0 1 12 7a4.4 4.4 0 0 1 8 2.8c0 5.2-8 10.7-8 10.7Z"/></svg>
+      </span>
+      <div>
+        <p>近 7 天互动（分享 + 收藏）</p>
+        <strong>{{ fans_page.summary.interactions_7d }}</strong>
+        <small>按日汇总</small>
+      </div>
+    </div>
+  </div>
+
+  <div class="fans-columns">
+    <section class="panel" aria-labelledby="fans-trend-title">
+      <div class="panel-heading">
+        <div>
+          <p class="section-label">FOLLOWER TREND</p>
+          <h2 id="fans-trend-title">{{ fans_page.range_label }}新增关注</h2>
+        </div>
+      </div>
+      {% if fans_page.has_data %}
+      <figure class="trend-figure">
+        <svg viewBox="0 0 {{ fans_page.chart.width }} {{ fans_page.chart.height }}" role="img"
+             aria-label="{{ fans_page.range_label }}每日新增关注柱状图">
+          {% for tick in fans_page.chart.y_ticks %}
+          <g class="chart-gridline">
+            <line x1="{{ fans_page.chart.pad_left }}" x2="{{ fans_page.chart.width - 8 }}" y1="{{ fans_page.chart.pad_bottom + (fans_page.chart.inner_h * (1 - tick.ratio)) | round(1) }}" y2="{{ fans_page.chart.pad_bottom + (fans_page.chart.inner_h * (1 - tick.ratio)) | round(1) }}"/>
+            <text x="{{ fans_page.chart.pad_left - 6 }}" y="{{ fans_page.chart.pad_bottom + (fans_page.chart.inner_h * (1 - tick.ratio)) | round(1) + 3 }}">{{ tick.label }}</text>
+          </g>
+          {% endfor %}
+          {% for bar in fans_page.chart.bars %}<rect class="chart-bar-followers" x="{{ bar.x }}" y="{{ bar.y }}" width="{{ bar.w }}" height="{{ bar.h }}" rx="2"/>{% endfor %}
+          {% for label in fans_page.chart.labels %}
+          {% if loop.index0 % 4 == 0 %}<text class="chart-label" x="{{ label.x }}" y="{{ fans_page.chart.height - 6 }}">{{ label.label }}</text>{% endif %}
+          {% endfor %}
+        </svg>
+        <figcaption class="chart-legend"><span class="legend-item is-followers">每日新增关注</span></figcaption>
+      </figure>
+      {% else %}
+      <div class="task-empty">
+        <h3>还没有关注数据</h3>
+        <p>导入包含「新增关注」列的运营数据后，这里会显示逐日趋势。</p>
+      </div>
+      {% endif %}
+    </section>
+
+    <section class="panel" aria-labelledby="fans-dist-title">
+      <div class="panel-heading">
+        <div>
+          <p class="section-label">TRAFFIC SHARE</p>
+          <h2 id="fans-dist-title">选题流量占比</h2>
+        </div>
+      </div>
+      {% if fans_page.summary.distribution %}
+      <ul class="dist-list dist-list-page">
+        {% for item in fans_page.summary.distribution %}
+        <li class="dist-row">
+          <span class="dist-name">{{ item.label | truncate(18) }}</span>
+          <span class="dist-track"><span class="dist-bar is-{{ item.tone }}" style="--w: {{ item.percent }}%"></span></span>
+          <span class="dist-percent">{{ item.percent }}%</span>
+        </li>
+        {% endfor %}
+      </ul>
+      <p class="field-help">按近 30 天各文章阅读量占比计算。</p>
+      {% else %}
+      <div class="task-empty">
+        <h3>还没有流量数据</h3>
+        <p>导入数据后，这里会显示每篇文章的阅读占比。</p>
+      </div>
+      {% endif %}
+    </section>
+  </div>
+
+  {% if fans_page.top_articles %}
+  <section class="panel" aria-labelledby="fans-top-title">
+    <div class="panel-heading">
+      <div>
+        <p class="section-label">TOP ARTICLES</p>
+        <h2 id="fans-top-title">高互动文章</h2>
+      </div>
+    </div>
+    <div class="windows-table-wrap">
+      <table class="windows-table">
+        <thead>
+          <tr><th>文章</th><th>累计阅读</th></tr>
+        </thead>
+        <tbody>
+          {% for row in fans_page.top_articles %}
+          <tr><td>{{ row.title }}</td><td>{{ row.share_display }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+</section>
+{% endblock %}

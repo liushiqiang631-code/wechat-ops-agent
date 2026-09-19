@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="topics-page" aria-labelledby="topics-title">
+  <div class="section-heading">
+    <div>
+      <p class="section-label">TOPIC CENTER</p>
+      <h2 id="topics-title">选题中心</h2>
+    </div>
+    <div class="heading-actions">
+      <button class="button button-secondary" type="button" data-open-drawer="import-drawer">导入数据</button>
+      <button class="button button-primary" type="button" data-open-drawer="task-drawer" data-preset-mode="data_driven_article">
+        数据驱动选题写作
+      </button>
+    </div>
+  </div>
+
+  <p class="page-summary">
+    选题信号来自两个真实来源：已发布文章的效果回填，以及导入的运营指标。
+    「数据驱动选题写作」会结合近期表现自动挑选值得深挖的角度。
+  </p>
+
+  {% if topics.has_data %}
+  <div class="metric-grid metric-grid-compact" aria-label="选题统计">
+    <article class="metric-card">
+      <div class="metric-card-head"><span>全部</span></div>
+      <p>已登记选题</p>
+      <strong class="metric-value">{{ topics.total }}</strong>
+      <div class="metric-change is-neutral">来自任务与发布登记</div>
+    </article>
+    <article class="metric-card">
+      <div class="metric-card-head"><span>已回填</span></div>
+      <p>有效果数据</p>
+      <strong class="metric-value">{{ topics.measured }}</strong>
+      <div class="metric-change is-neutral">发布后按标题回填</div>
+    </article>
+  </div>
+
+  <section class="panel" aria-labelledby="topic-table-title">
+    <div class="panel-heading">
+      <div>
+        <p class="section-label">TOPIC PERFORMANCE</p>
+        <h2 id="topic-table-title">选题表现</h2>
+      </div>
+    </div>
+    <div class="windows-table-wrap">
+      <table class="windows-table">
+        <thead>
+          <tr>
+            <th>选题</th>
+            <th>模式</th>
+            <th>发布日期</th>
+            <th>阅读</th>
+            <th>分享</th>
+            <th>收藏</th>
+            <th>新增关注</th>
+            <th>回填状态</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for row in topics.rows %}
+          <tr>
+            <td>{{ row.topic }}</td>
+            <td>{{ "指定主题" if row.mode == "fixed_topic" else "数据驱动" if row.mode == "data_driven_article" else "周计划" }}</td>
+            <td>{{ row.published_at }}</td>
+            <td>{{ "{:,}".format(row.reads) if row.reads is not none else "—" }}</td>
+            <td>{{ row.shares if row.shares is not none else "—" }}</td>
+            <td>{{ row.favorites if row.favorites is not none else "—" }}</td>
+            <td>{{ row.followers if row.followers is not none else "—" }}</td>
+            <td>{{ "已回填" if row.measured else "待回填" }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% else %}
+
+  <div class="task-empty panel">
+    <div class="task-empty-mark" aria-hidden="true">◎</div>
+    <h3>还没有选题记录</h3>
+    <p>运行「数据驱动文章」或「周度运营计划」任务后，系统会自动登记选题并跟踪效果；
+      也可以先导入运营数据，让选题评分有历史依据。</p>
+    <div class="heading-actions">
+      <button class="button button-secondary" type="button" data-open-drawer="import-drawer">导入运营数据</button>
+      <button class="button button-primary" type="button" data-open-drawer="task-drawer" data-preset-mode="data_driven_article">
+        数据驱动选题写作
+      </button>
+    </div>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

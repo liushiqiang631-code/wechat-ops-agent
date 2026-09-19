@@ -12,8 +12,20 @@ class MetricsRepository:
 
     def insert(self, records: list[MetricRecord]) -> int:
         inserted = 0
+        # The database uniqueness constraint only sees pending inserts on flush,
+        # so duplicate rows in one uploaded file would otherwise fail the whole
+        # transaction. Keep one snapshot for each source record before writing.
+        unique_records = {
+            (
+                record.source_type,
+                record.source_record_id,
+                record.metric_date,
+                "article_summary",
+            ): record
+            for record in records
+        }
         with self.sessions.begin() as session:
-            for record in records:
+            for record in unique_records.values():
                 existing = (
                     session.query(RawMetricRow)
                     .filter_by(

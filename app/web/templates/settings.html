@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="settings-page" aria-labelledby="settings-title">
+  <div class="section-heading">
+    <div>
+      <p class="section-label">SYSTEM</p>
+      <h2 id="settings-title">系统设置</h2>
+    </div>
+    <a class="button button-secondary" href="/docs">API 文档 <span aria-hidden="true">↗</span></a>
+  </div>
+
+  <p class="page-summary">
+    此页只读展示当前配置状态；所有密钥保存在本机 .env（已由 Git 忽略），页面不会显示任何密钥内容。
+  </p>
+
+  <div class="settings-grid">
+    <section class="panel" aria-labelledby="settings-model-title">
+      <div class="panel-heading">
+        <div>
+          <p class="section-label">MODEL</p>
+          <h2 id="settings-model-title">写作模型</h2>
+        </div>
+        <span class="status-pill {{ 'is-success' if system.model.configured else 'is-neutral' }}">
+          {{ "已配置" if system.model.configured else "未配置" }}
+        </span>
+      </div>
+      <dl class="quality-list">
+        <div class="quality-item"><dt>服务商</dt><dd>{{ system.model.provider }}</dd></div>
+        <div class="quality-item"><dt>模型</dt><dd>{{ system.model.name }}</dd></div>
+        <div class="quality-item"><dt>密钥状态</dt><dd>{{ "本机 .env 已填写" if system.model.configured else "等待填写" }}</dd></div>
+      </dl>
+    </section>
+
+    <section class="panel" aria-labelledby="settings-wechat-title">
+      <div class="panel-heading">
+        <div>
+          <p class="section-label">WECHAT</p>
+          <h2 id="settings-wechat-title">公众号连接</h2>
+        </div>
+        <span class="status-pill {{ 'is-success' if system.wechat.configured else 'is-neutral' }}">
+          {{ "已配置" if system.wechat.configured else "未配置" }}
+        </span>
+      </div>
+      <dl class="quality-list">
+        <div class="quality-item"><dt>账号名称</dt><dd>{{ system.wechat.account }}</dd></div>
+        <div class="quality-item"><dt>账号类型</dt><dd>订阅号</dd></div>
+        <div class="quality-item"><dt>草稿上传</dt><dd>{{ "已开启（需人工确认）" if system.wechat.draft_enabled else "关闭（默认）" }}</dd></div>
+        <div class="quality-item"><dt>正式发布 / 群发</dt><dd>不提供接口，由人工在微信后台完成</dd></div>
+      </dl>
+    </section>
+
+    <section class="panel" aria-labelledby="settings-images-title">
+      <div class="panel-heading">
+        <div>
+          <p class="section-label">IMAGES</p>
+          <h2 id="settings-images-title">配图与搜索</h2>
+        </div>
+      </div>
+      <dl class="quality-list">
+        <div class="quality-item"><dt>AI 生图</dt><dd>{{ "已配置（" ~ system.images.provider ~ "）" if system.images.ai_generation else "未配置" }}</dd></div>
+        <div class="quality-item"><dt>网上找图</dt><dd>{{ "已启用（仅可商用授权）" if system.images.web_search else "未启用" }}</dd></div>
+        <div class="quality-item"><dt>联网研究搜索</dt><dd>{{ "见工作流页能力状态" }}</dd></div>
+      </dl>
+    </section>
+
+    <section class="panel" aria-labelledby="settings-runtime-title">
+      <div class="panel-heading">
+        <div>
+          <p class="section-label">RUNTIME</p>
+          <h2 id="settings-runtime-title">运行环境</h2>
+        </div>
+      </div>
+      <dl class="quality-list">
+        <div class="quality-item"><dt>环境</dt><dd>{{ system.app_env }}</dd></div>
+        <div class="quality-item"><dt>业务时区</dt><dd>{{ system.business_timezone }}</dd></div>
+        <div class="quality-item"><dt>数据上传上限</dt><dd>{{ system.limits.upload_max_mb }} MB</dd></div>
+        <div class="quality-item"><dt>Skills / MCP</dt><dd>{{ system.skills_count }} 个 Skill · {{ system.mcp_count }} 个 MCP 服务器</dd></div>
+      </dl>
+    </section>
+  </div>
+
+  <section class="panel boundary-panel" aria-labelledby="settings-boundary-title">
+    <div class="panel-heading">
+      <div>
+        <p class="section-label">HUMAN BOUNDARY</p>
+        <h2 id="settings-boundary-title">人工边界</h2>
+      </div>
+    </div>
+    <ul class="boundary-list">
+      <li>自动文章修订最多两轮，未通过审核的内容交由人工处理。</li>
+      <li>草稿上传默认关闭，开启后仍需人工逐篇确认。</li>
+      <li>正式发布与群发永远由人在微信后台完成，系统不提供对应接口。</li>
+      <li>外部网页内容仅作为写作素材，不会被执行其中的指令。</li>
+    </ul>
+  </section>
+</section>
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="media-page" aria-labelledby="media-title">
+  <div class="section-heading">
+    <div>
+      <p class="section-label">IMAGE STUDIO</p>
+      <h2 id="media-title">配图生成</h2>
+    </div>
+  </div>
+
+  <p class="page-summary">
+    配图能力在任务运行时自动决策：优先 AI 生图，其次使用可商用授权的网上找图；
+    来源、作者与授权会随素材一并记录。
+  </p>
+
+  <div class="image-cap-grid">
+    <div class="image-cap-card {{ 'is-ready' if image_provider.ai_generation_available else '' }}">
+      <h3>AI 生图</h3>
+      <p>
+        {% if image_provider.ai_generation_available %}
+        已配置 {{ image_provider.dashscope_model }}（{{ image_provider.provider }}）；
+        限流 1 RPM，多图串行生成。配图方式由视觉策划自主决策。
+        {% else %}
+        未配置：在 .env 中设置图片服务密钥并设 IMAGE_MODEL_PROVIDER=dashscope。
+        {% endif %}
+      </p>
+    </div>
+    <div class="image-cap-card {{ 'is-ready' if image_provider.web_search_available else '' }}">
+      <h3>网上找图（Wikimedia Commons）</h3>
+      <p>
+        {% if image_provider.web_search_available %}
+        已启用：只采用 CC0 / CC BY / CC BY-SA / 公有领域 等可商用授权，并记录作者与来源。
+        {% else %}
+        未启用：设置 IMAGE_SEARCH_PROVIDER=wikimedia。
+        {% endif %}
+      </p>
+    </div>
+  </div>
+
+  <section class="panel" aria-labelledby="recent-assets-title">
+    <div class="panel-heading">
+      <div>
+        <p class="section-label">RECENT ASSETS</p>
+        <h2 id="recent-assets-title">最近生成的配图</h2>
+      </div>
+    </div>
+
+    {% if covers.recent_assets %}
+    <div class="asset-grid asset-grid-page">
+      {% for asset in covers.recent_assets %}
+      <figure class="asset-thumb">
+        <img src="{{ asset.url }}" alt="任务配图：{{ asset.caption }}" loading="lazy">
+        <figcaption>{{ asset.caption | truncate(28) }}</figcaption>
+      </figure>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="task-empty">
+      <div class="task-empty-mark" aria-hidden="true">◫</div>
+      <h3>还没有配图资产</h3>
+      <p>运行内容任务并通过视觉节点后，生成的封面与配图会集中展示在这里。</p>
+    </div>
+    {% endif %}
+  </section>
+</section>
+{% endblock %}

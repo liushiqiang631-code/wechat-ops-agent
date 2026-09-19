@@ -90,7 +90,10 @@ def test_windows_launcher_is_cmd_safe_and_waits_for_health():
 
     assert launcher.isascii()
     text = launcher.decode("ascii").lower()
-    assert r".venv\scripts\python.exe" in text
+    # The launcher runs on the system Python via the py launcher; it must not
+    # depend on a project-local virtual environment.
+    assert ".venv" not in text
+    assert "py -3.13" in text
     assert "-m app.cli serve" in text
     # The CLI owns health polling and opens the browser only after /health responds.
     assert "--no-browser" not in text

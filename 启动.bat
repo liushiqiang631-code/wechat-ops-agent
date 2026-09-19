@@ -1,30 +1,61 @@
 @echo off
-rem WeChat Ops Agent launcher. Runs the local service and opens the browser after health succeeds.
-setlocal EnableExtensions EnableDelayedExpansion
+rem WeChat Ops Agent launcher: uses the system Python directly, no virtual environment needed.
+setlocal EnableExtensions
 cd /d "%~dp0"
-
-set "PYTHON=.venv\Scripts\python.exe"
 
 title WeChat Ops Agent
 
-if not exist "%PYTHON%" (
-    echo [ERROR] Virtual environment Python was not found: %PYTHON%
-    echo Run: .\.venv\Scripts\python.exe -m pip install -e ".[dev]"
-    echo Then copy .env.example to .env and configure local credentials.
+set "PORT=8000"
+
+rem ---- Locate a suitable Python (project requires >=3.12,<3.14) ----
+set "PYCMD="
+py -3.13 -c "import sys" >nul 2>&1 && set "PYCMD=py -3.13"
+if not defined PYCMD py -3.12 -c "import sys" >nul 2>&1 && set "PYCMD=py -3.12"
+if not defined PYCMD python -c "import sys" >nul 2>&1 && set "PYCMD=python"
+
+if not defined PYCMD (
+    echo [ERROR] No usable Python was found.
+    echo Install Python 3.12 or 3.13 and enable "Add python.exe to PATH" during setup.
     pause
     exit /b 1
 )
 
+%PYCMD% -c "import sys; sys.exit(0 if sys.version_info>=(3,12) and sys.version_info<(3,14) else 1)" >nul 2>&1
+if errorlevel 1 (
+    echo [ERROR] The detected Python version is not supported. Python 3.12 or 3.13 is required:
+    %PYCMD% --version
+    pause
+    exit /b 1
+)
+
+rem ---- Install dependencies on first run ----
+%PYCMD% -c "import fastapi, uvicorn, sqlalchemy, langgraph, alembic, apscheduler, jinja2, pydantic_settings" >nul 2>&1
+if errorlevel 1 (
+    echo First run: installing dependencies, this needs network access. Please wait...
+    %PYCMD% -m pip install -e ".[dev]"
+    if errorlevel 1 (
+        echo [ERROR] Dependency installation failed. Check the network and try again.
+        pause
+        exit /b 1
+    )
+)
+
+rem ---- Reuse an already running service ----
 echo Checking whether the local service is already running...
-netstat -ano | findstr /C:":8000 " | findstr /C:"LISTENING" >nul 2>&1
-if not errorlevel 1 goto open_existing_console
+netstat -ano | findstr /C:":%PORT% " | findstr /C:"LISTENING" >nul 2>&1
+if not errorlevel 1 (
+    echo An existing local service was found; opening the operations console.
+    start "" "http://127.0.0.1:8000"
+    exit /b 0
+)
 
 echo Starting the local service in this window...
 echo The operations console will open in your default browser when ready.
-"%PYTHON%" -m app.cli serve
+echo Close this window to stop the service.
+%PYCMD% -m app.cli serve --host 127.0.0.1 --port %PORT%
+if errorlevel 1 (
+    echo.
+    echo [ERROR] The service failed to start. Share the error above for support.
+    pause
+)
 exit /b %errorlevel%
-
-:open_existing_console
-echo An existing local service was found; opening the operations console.
-start "" "http://127.0.0.1:8000"
-exit /b 0

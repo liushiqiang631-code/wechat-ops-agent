@@ -17,14 +17,15 @@ def calculate_windows(
     for days in (7, 30, 90):
         start = reference - timedelta(days=days)
         selected = [record for record in records if start <= record.metric_date < reference]
+        article_ids = {record.article_id for record in selected}
         reads = sum(record.reads for record in selected if record.reads >= 0)
         result[f"{days}d"] = MetricWindow(
             period=f"{days}d",
-            article_count=len(selected),
+            article_count=len(article_ids),
             reads=reads,
             shares=sum(record.shares for record in selected),
             favorites=sum(record.favorites for record in selected),
             followers_gained=sum(record.followers_gained for record in selected),
-            read_per_article=round(reads / len(selected), 2) if selected else 0.0,
+            read_per_article=round(reads / len(article_ids), 2) if article_ids else 0.0,
         )
     return result

@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="schedule-page" aria-labelledby="schedule-title">
+  <div class="section-heading">
+    <div>
+      <p class="section-label">PUBLISH REMINDER</p>
+      <h2 id="schedule-title">定时群发（提醒）</h2>
+    </div>
+  </div>
+
+  <div class="boundary-note" role="note">
+    <strong>系统边界</strong>
+    <p>
+      本系统不提供公众号正式发布或群发接口。这里只做两件事：
+      到点提醒你在微信后台完成群发，以及整理等待人工发布的文章清单。
+      草稿上传需显式开启，且始终由人工确认。
+    </p>
+  </div>
+
+  <div class="schedule-grid">
+    <section class="panel" aria-labelledby="waiting-title">
+      <div class="panel-heading">
+        <div>
+          <p class="section-label">WAITING FOR HUMAN</p>
+          <h2 id="waiting-title">等待人工发布的文章（{{ schedule.waiting | length }}）</h2>
+        </div>
+      </div>
+      {% if schedule.waiting %}
+      <div class="task-list">
+        {% for task in schedule.waiting %}
+        <article class="task-row">
+          <div class="task-content">
+            <div class="task-title-row">
+              <h3>{{ task.title }}</h3>
+              <span class="status-pill is-{{ task.status_tone }}">{{ task.status_label }}</span>
+            </div>
+            <div class="task-foot">
+              <code>{{ task.short_id }}</code>
+              <time>{{ task.updated_label }}</time>
+            </div>
+          </div>
+          <div class="task-actions">
+            <a class="task-action task-action-link" href="/review/{{ task.id }}">审阅</a>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="task-empty">
+        <h3>暂无等待发布的文章</h3>
+        <p>审阅完成并上传草稿箱后，文章会进入这份清单，提醒你在微信后台发布。</p>
+      </div>
+      {% endif %}
+    </section>
+
+    <section class="panel" aria-labelledby="week-plan-title">
+      <div class="panel-heading">
+        <div>
+          <p class="section-label">WEEK PLAN</p>
+          <h2 id="week-plan-title">本周排期提醒</h2>
+        </div>
+      </div>
+      {% if schedule.has_plan %}
+      <ul class="plan-list plan-list-page">
+        {% for row in schedule.plan_rows %}
+        <li class="plan-row">
+          <span class="plan-dot {{ 'is-active' if row.day == schedule.today_weekday }}" aria-hidden="true"></span>
+          <div class="plan-copy">
+            <strong>{{ row.day }} · {{ row.topic | truncate(16) }}</strong>
+            <small>{{ row.format }} · {{ row.purpose | truncate(14) }}</small>
+          </div>
+          <span class="plan-tag is-{{ row.status_tone }}">{{ row.status_label }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="task-empty">
+        <h3>还没有周排期</h3>
+        <p>创建「周度运营计划」任务后，本周每天的选题与状态会在这里提醒。</p>
+        <button class="button button-secondary" type="button" data-open-drawer="task-drawer" data-preset-mode="weekly_plan">
+          创建周计划
+        </button>
+      </div>
+      {% endif %}
+    </section>
+  </div>
+</section>
+{% endblock %}

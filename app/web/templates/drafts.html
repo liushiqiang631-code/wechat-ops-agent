@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="drafts-page" aria-labelledby="drafts-title">
+  <div class="section-heading">
+    <div>
+      <p class="section-label">WECHAT DRAFT BOX</p>
+      <h2 id="drafts-title">草稿箱同步</h2>
+    </div>
+  </div>
+
+  <p class="page-summary">
+    {% if drafts.enabled %}
+    草稿上传已开启：审阅完成的文章由人工确认后写入微信草稿箱，正式发布始终在微信后台完成。
+    {% else %}
+    草稿上传未开启（默认关闭）。在 .env 中配置微信凭据并显式开启 WECHAT_DRAFT_ENABLED 后，
+    才能把审阅完成的文章写入草稿箱。
+    {% endif %}
+  </p>
+
+  {% if drafts.rows %}
+  <section class="panel" aria-labelledby="draft-list-title">
+    <div class="panel-heading">
+      <div>
+        <p class="section-label">DRAFT RECEIPTS</p>
+        <h2 id="draft-list-title">已写入草稿箱（{{ drafts.count }}）</h2>
+      </div>
+    </div>
+    <div class="windows-table-wrap">
+      <table class="windows-table">
+        <thead>
+          <tr>
+            <th>文章</th>
+            <th>状态</th>
+            <th>素材编号</th>
+            <th>写入时间</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for row in drafts.rows %}
+        <tr>
+          <td>{{ row.title }}</td>
+          <td><span class="status-pill is-{{ row.status_tone }}">{{ row.status_label }}</span></td>
+          <td><code>{{ row.media_id | truncate(28) }}</code></td>
+          <td>{{ row.created_label }}</td>
+          <td><a class="task-action task-action-link" href="/review/{{ row.task_id }}">审阅</a></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% else %}
+  <div class="task-empty panel">
+    <div class="task-empty-mark" aria-hidden="true">▤</div>
+    <h3>还没有草稿写入记录</h3>
+    <p>把文章推进到「等待人工审阅」后，在任务列表里选择「推草稿」，回执会记录在这里。</p>
+    <a class="button button-secondary" href="/tasks">前往 AI 写稿</a>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

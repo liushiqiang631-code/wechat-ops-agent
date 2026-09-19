@@ -97,6 +97,15 @@ document.addEventListener("click", (event) => {
   const opener = event.target.closest("[data-open-drawer]");
   if (opener) {
     openDrawer(opener.dataset.openDrawer, opener);
+    if (opener.dataset.presetMode) {
+      const radio = document.querySelector(
+        `#task-form input[name="mode"][value="${opener.dataset.presetMode}"]`
+      );
+      if (radio) {
+        radio.checked = true;
+        radio.dispatchEvent(new Event("change", {bubbles: true}));
+      }
+    }
     return;
   }
   if (event.target.closest("[data-close-drawer]")) closeDrawer();
@@ -958,6 +967,214 @@ document.querySelectorAll("[data-close-mcp-tools]").forEach((button) => {
 mcpToolsDialog?.addEventListener("click", (event) => {
   if (event.target === mcpToolsDialog) mcpToolsDialog.close();
 });
+
+/* ------------------------------------------------------------------ *
+ * 总览页：一键导入虚构示例数据
+ * ------------------------------------------------------------------ */
+
+document.querySelectorAll("[data-import-demo]").forEach((button) => {
+  button.addEventListener("click", async () => {
+    const actionKey = "import-demo";
+    if (pendingActions.has(actionKey)) return;
+    pendingActions.add(actionKey);
+    setBusy(button, true, "正在导入…");
+    try {
+      const response = await fetch("/api/v1/metrics/import-demo", {method: "POST"});
+      const payload = await readPayload(response);
+      if (!response.ok) throw new Error(errorMessage(payload, "导入示例数据失败"));
+      showToast(`已导入 ${payload.imported ?? 0} 条虚构示例记录（标题含「虚构示例」）`);
+      window.setTimeout(() => window.location.reload(), 650);
+    } catch (error) {
+      showToast(error.message || "导入示例数据失败，请稍后重试。", "error");
+      setBusy(button, false);
+    } finally {
+      pendingActions.delete(actionKey);
+    }
+  });
+});
+
+/* ------------------------------------------------------------------ *
+ * 总览页：Agent 工作流提示卡片（可关闭）
+ * ------------------------------------------------------------------ */
+
+document.querySelectorAll("[data-notice-close]").forEach((button) => {
+  button.addEventListener("click", () => {
+    button.closest("[data-notice]")?.remove();
+  });
+});
+
+/* ------------------------------------------------------------------ *
+ * 总览页：AI 文章生成表单（主题 / 人群 / 风格 / 关键词标签）
+ * ------------------------------------------------------------------ */
+
+const articleForm = document.querySelector("#article-form");
+
+if (articleForm) {
+  const topicInput = articleForm.querySelector("#composer-topic");
+  const topicCount = articleForm.querySelector("#topic-count");
+  const keywordInput = articleForm.querySelector("#composer-keywords");
+  const keywordChips = articleForm.querySelector("#keyword-chips");
+  const keywordCount = articleForm.querySelector("#keyword-count");
+  const errorNode = articleForm.querySelector("[data-form-error]");
+  const keywords = [];
+
+  const syncKeywordChips = () => {
+    if (!keywordChips) return;
+    keywordChips.textContent = "";
+    for (const [index, word] of keywords.entries()) {
+      const chip = document.createElement("span");
+      chip.className = "keyword-chip";
+      chip.append(document.createTextNode(word));
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.textContent = "×";
+      remove.setAttribute("aria-label", `移除关键词 ${word}`);
+      remove.addEventListener("click", () => {
+        keywords.splice(index, 1);
+        syncKeywordChips();
+      });
+      chip.append(remove);
+      keywordChips.append(chip);
+    }
+    if (keywordCount) keywordCount.textContent = `${keywords.length}/10`;
+  };
+
+  topicInput?.addEventListener("input", () => {
+    if (topicCount) topicCount.textContent = `${topicInput.value.length}/50`;
+  });
+
+  keywordInput?.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    const word = keywordInput.value.trim().slice(0, 20);
+    if (!word) return;
+    if (keywords.length >= 10) {
+      if (errorNode) errorNode.textContent = "关键词最多 10 个。";
+      return;
+    }
+    if (!keywords.includes(word)) keywords.push(word);
+    keywordInput.value = "";
+    if (errorNode) errorNode.textContent = "";
+    syncKeywordChips();
+  });
+
+  articleForm.querySelectorAll("[data-review-link]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const href = articleForm.dataset.reviewHref;
+      if (href) {
+        window.location.href = href;
+      } else {
+        showToast("还没有可处理的文章，先输入主题生成一篇吧。", "error");
+      }
+    });
+  });
+
+  articleForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (pendingActions.has("compose-article")) return;
+    const submit = articleForm.querySelector('button[type="submit"]');
+    const topic = String(topicInput?.value || "").trim();
+    const audience = articleForm.querySelector("#composer-audience")?.value || "";
+    const style = articleForm.querySelector("#composer-style")?.value || "";
+    if (errorNode) errorNode.textContent = "";
+
+    if (topic.length < 4) {
+      if (errorNode) errorNode.textContent = "请先输入至少 4 个字的文章主题。";
+      topicInput?.focus();
+      return;
+    }
+
+    const segments = [`主题：${topic}`];
+    if (audience) segments.push(`目标人群：${audience}`);
+    if (style) segments.push(`写作风格：${style}`);
+    if (keywords.length) segments.push(`关键词：${keywords.join("、")}`);
+
+    pendingActions.add("compose-article");
+    setBusy(submit, true, "正在创建…");
+    try {
+      const response = await fetch("/api/v1/tasks", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({mode: "fixed_topic", topic, request: segments.join("\n")})
+      });
+      const payload = await readPayload(response);
+      if (!response.ok) throw new Error(errorMessage(payload, "创建文章任务失败"));
+      showToast("文章任务已创建，到「AI 写稿」页运行即可生成");
+      window.setTimeout(() => window.location.reload(), 650);
+    } catch (error) {
+      if (errorNode) errorNode.textContent = error.message || "创建任务失败，请稍后重试。";
+    } finally {
+      pendingActions.delete("compose-article");
+      setBusy(submit, false);
+    }
+  });
+}
+
+/* ------------------------------------------------------------------ *
+ * 总览页：配图面板标签页
+ * ------------------------------------------------------------------ */
+
+document.querySelectorAll(".panel [data-tab]").forEach((tab) => {
+  tab.addEventListener("click", () => {
+    const panel = tab.closest(".panel");
+    if (!panel) return;
+    panel.querySelectorAll("[data-tab]").forEach((node) => {
+      const active = node === tab;
+      node.classList.toggle("is-active", active);
+      node.setAttribute("aria-selected", String(active));
+    });
+    panel.querySelectorAll("[data-pane]").forEach((pane) => {
+      const active = pane.dataset.pane === tab.dataset.tab;
+      pane.classList.toggle("is-active", active);
+      pane.hidden = !active;
+    });
+  });
+});
+
+/* ------------------------------------------------------------------ *
+ * 总览页：数据分析近 7 天 / 近 30 天切换
+ * ------------------------------------------------------------------ */
+
+document.querySelectorAll("[data-range]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const box = button.closest(".panel");
+    if (!box) return;
+    box.querySelectorAll("[data-range]").forEach((node) => {
+      const active = node === button;
+      node.classList.toggle("is-active", active);
+      node.setAttribute("aria-selected", String(active));
+    });
+    box.querySelectorAll("[data-trend]").forEach((figure) => {
+      const active = figure.dataset.trend === button.dataset.range;
+      figure.classList.toggle("is-hidden", !active);
+      figure.hidden = !active;
+    });
+  });
+});
+
+/* ------------------------------------------------------------------ *
+ * 顶栏搜索：任务页内过滤任务行，其他页面回车跳转任务页
+ * ------------------------------------------------------------------ */
+
+const searchForm = document.querySelector(".topbar-search");
+const searchInput = searchForm?.querySelector("input");
+
+if (searchForm && searchInput && window.location.pathname === "/tasks") {
+  searchForm.addEventListener("submit", (event) => event.preventDefault());
+  const rows = [...document.querySelectorAll("[data-task-card]")];
+  searchInput.addEventListener("input", () => {
+    const query = searchInput.value.trim().toLowerCase();
+    rows.forEach((row) => {
+      const match = !query || row.textContent.toLowerCase().includes(query);
+      row.style.display = match ? "" : "none";
+    });
+  });
+  const initialQuery = new URLSearchParams(window.location.search).get("q");
+  if (initialQuery) {
+    searchInput.value = initialQuery;
+    searchInput.dispatchEvent(new Event("input"));
+  }
+}
 
 pollTaskSteps();
 loadGenui();

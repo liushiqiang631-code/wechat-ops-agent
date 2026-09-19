@@ -23,10 +23,10 @@ def build_client(tmp_path: Path) -> TestClient:
 def test_agent_capability_page_lists_skills_and_mcp(tmp_path: Path):
     client = build_client(tmp_path)
 
-    page = client.get("/agent")
+    page = client.get("/workflow")
 
     assert page.status_code == 200
-    assert "Agent 能力管理" in page.text
+    assert "工作流与能力" in page.text
     assert "human_writing" in page.text
     assert "MCP 服务器" in page.text
     # 配置指引可以提到环境变量名，但绝不能出现密钥形态的值

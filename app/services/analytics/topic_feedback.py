@@ -43,7 +43,7 @@ def _matching_records(records: list[MetricRecord], candidates: list[str]) -> lis
         title = normalize_title(record.article_title or "")
         if not title:
             continue
-        if any(target and (target in title or title in target) for target in normalized):
+        if title in normalized:
             matched.append(record)
     return matched
 
@@ -64,6 +64,8 @@ def backfill_published_metrics(container: ApplicationContainer, task_id: str) ->
     matched = _matching_records(records, candidates)
     if not matched:
         raise ValueError("未能在导入指标中匹配到该文章的标题")
+    if len({record.article_id for record in matched}) > 1:
+        raise ValueError("匹配到多个文章，无法自动回填指标")
     now = datetime.now(container.settings.timezone)
     topic.reads = sum(record.reads for record in matched if record.reads >= 0)
     topic.shares = sum(record.shares for record in matched)

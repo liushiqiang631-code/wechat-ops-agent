@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -224,6 +225,46 @@ def test_metrics_import_returns_quality_and_windows(tmp_path: Path):
     assert payload["imported"] == 1
     assert payload["quality"]["confidence"] > 0
     assert "7d" in payload["windows"]
+
+
+def test_metrics_import_deduplicates_repeated_rows_within_one_upload(tmp_path: Path):
+    client = api_client(tmp_path)
+    csv_body = (
+        "日期,文章ID,标题,阅读人数,分享人数,收藏人数,新增关注\n"
+        "2026-07-17,a-1,LangGraph 检查点,100,8,12,3\n"
+        "2026-07-17,a-1,LangGraph 检查点,100,8,12,3\n"
+    ).encode("utf-8-sig")
+
+    response = client.post(
+        "/api/v1/metrics/import",
+        files={"file": ("metrics.csv", csv_body, "text/csv")},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["imported"] == 1
+
+
+def test_metrics_overview_counts_multi_day_metrics_as_one_article(tmp_path: Path):
+    client = api_client(tmp_path)
+    today = datetime.now().astimezone().date()
+    yesterday = today - timedelta(days=1)
+    csv_body = (
+        "日期,文章ID,标题,阅读人数,分享人数,收藏人数,新增关注\n"
+        f"{yesterday},a-1,LangGraph 检查点,100,8,12,3\n"
+        f"{today},a-1,LangGraph 检查点,100,8,12,0\n"
+    ).encode("utf-8-sig")
+
+    imported = client.post(
+        "/api/v1/metrics/import",
+        files={"file": ("metrics.csv", csv_body, "text/csv")},
+    )
+    overview = client.get("/api/v1/metrics/overview")
+
+    assert imported.status_code == 200
+    window = overview.json()["windows"]["7d"]
+    assert window["article_count"] == 1
+    assert window["reads"] == 200
+    assert window["read_per_article"] == 200
 
 
 def test_final_version_diff_and_publication_registration(tmp_path: Path):

@@ -11,6 +11,7 @@ __pycache__/
 .pytest-tmp/
 .pytest-temp/
 .pytest-local/
+.preview/
 .ruff_cache/
 .playwright-cli/
 .coverage

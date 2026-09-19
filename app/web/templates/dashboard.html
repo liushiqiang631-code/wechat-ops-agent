@@ -1,143 +1,486 @@
 {% extends "base.html" %}
 
 {% block content %}
-<section class="welcome-panel" aria-labelledby="welcome-title">
-  <div class="welcome-copy">
-    <p class="welcome-kicker">{{ greeting }}，{{ operator_name }}</p>
-    <h1 id="welcome-title">今天，继续把好内容做深。</h1>
-    <p class="welcome-summary">
-      {% if pending_task_count %}
-        {{ pending_task_count }} 个任务正在流转，先处理最接近完成的那一个。
+<section class="overview" aria-labelledby="overview-title">
+  <h1 id="overview-title" class="visually-hidden">运营总览</h1>
+
+  <div class="kpi-grid" aria-label="今日运营指标">
+    {% for card in kpi_cards %}
+    <article class="kpi-card is-{{ card.key }}">
+      <span class="kpi-icon" aria-hidden="true">
+        {% if card.key == "generated" %}
+        <svg viewBox="0 0 24 24"><path d="M7 3.5h7.5L19 8v12.5H7Zm7 .8V8h4.3M9.8 12.5h6m-6 3.5h4.2"/></svg>
+        {% elif card.key == "drafts" %}
+        <svg viewBox="0 0 24 24"><path d="M3.5 6.5h6l2 2.4h9v9.6h-17Z"/></svg>
+        {% elif card.key == "assets" %}
+        <svg viewBox="0 0 24 24"><path d="M4 5.5h16v13H4Zm2.5 9 3-3.5 3 3 2.5-2.5 2.5 3M9.3 9.6a1.1 1.1 0 1 1-2.2 0 1.1 1.1 0 0 1 2.2 0Z"/></svg>
+        {% else %}
+        <svg viewBox="0 0 24 24"><path d="M15.5 20v-1.6a4 4 0 0 0-4-4h-5a4 4 0 0 0-4 4V20M9 10.8a3.6 3.6 0 1 0 0-7.2 3.6 3.6 0 0 0 0 7.2Zm6.5-.4a3 3 0 1 0-1.7-5.5M17.5 14.5a4 4 0 0 1 4 4V20"/></svg>
+        {% endif %}
+      </span>
+      <div class="kpi-copy">
+        <p class="kpi-label">{{ card.label }}</p>
+        <strong class="kpi-value">{{ card.display_value }}</strong>
+        <p class="kpi-change is-{{ card.change_direction }}">
+          {% if card.has_data and card.change_direction != "neutral" %}
+          <span aria-hidden="true">{{ "↑" if card.change_direction == "up" else "↓" }}</span>
+          {% endif %}
+          {{ card.change_text }}
+          {% if card.has_data %}<small>{{ card.period }}</small>{% endif %}
+        </p>
+      </div>
+    </article>
+    {% endfor %}
+
+    <article class="agent-live-card" aria-label="Agent 执行状态">
+      <div class="agent-live-copy">
+        <h2>{{ "自动执行中…" if workflow.running else "Agent 待命中" }}</h2>
+        <p>{{ workflow.badge }} · 数据驱动的内容流水线</p>
+        <div class="agent-live-progress" role="progressbar" aria-label="工作流进度"
+             aria-valuemin="0" aria-valuemax="6"
+             aria-valuenow="{{ workflow.steps | selectattr("state", "equalto", "done") | list | length }}">
+          {% set done_count = workflow.steps | selectattr("state", "equalto", "done") | list | length %}
+          <span style="--progress: {{ (done_count / 6 * 100) | round | int }}%"></span>
+        </div>
+        <p class="agent-live-quote">“好内容，会带来更多相遇。”</p>
+      </div>
+      <span class="agent-live-bot" aria-hidden="true">
+        <svg viewBox="0 0 48 48" role="img">
+          <rect x="8" y="14" width="32" height="24" rx="9" class="bot-body"/>
+          <circle cx="18.5" cy="25.5" r="3.2" class="bot-eye"/>
+          <circle cx="29.5" cy="25.5" r="3.2" class="bot-eye"/>
+          <circle cx="17.4" cy="24.6" r="1.1" class="bot-glint"/>
+          <circle cx="28.4" cy="24.6" r="1.1" class="bot-glint"/>
+          <path d="M20 31.5c2.4 1.8 5.6 1.8 8 0" class="bot-smile"/>
+          <line x1="24" y1="9" x2="24" y2="14" class="bot-antenna"/>
+          <circle cx="24" cy="7.5" r="2.4" class="bot-antenna-dot"/>
+          <rect x="1" y="22" width="4.5" height="9" rx="2.2" class="bot-ear"/>
+          <rect x="42.5" y="22" width="4.5" height="9" rx="2.2" class="bot-ear"/>
+          <path class="bot-spark" d="M40 6.5v5m-2.5-2.5h5"/>
+        </svg>
+      </span>
+    </article>
+  </div>
+
+  <div class="workbench">
+
+    <section class="panel composer-panel" aria-labelledby="composer-title">
+      <div class="panel-heading">
+        <h2 id="composer-title">
+          <span class="panel-glyph" aria-hidden="true">✎</span> AI 文章生成
+        </h2>
+      </div>
+      <form id="article-form" class="composer-form" data-review-href="{{ '/review/' ~ article_preview.task_id if article_preview else '' }}">
+        <label class="field-label" for="composer-topic">文章主题 <em aria-hidden="true">*</em></label>
+        <div class="topic-field">
+          <input id="composer-topic" name="topic" type="text" required maxlength="50"
+                 placeholder="例如：如何用 AI 提升工作效率？" autocomplete="off">
+          <output class="topic-count" id="topic-count" for="composer-topic">0/50</output>
+        </div>
+
+        <label class="field-label" for="composer-audience">目标人群</label>
+        <select id="composer-audience" name="audience">
+          <option>职场人、大学生、科技爱好者</option>
+          <option>创业者与自由职业者</option>
+          <option>关注效率工具的通用读者</option>
+        </select>
+
+        <label class="field-label" for="composer-style">写作风格</label>
+        <select id="composer-style" name="style">
+          <option>专业但通俗、干货实用</option>
+          <option>轻松幽默、案例丰富</option>
+          <option>深度长文、系统讲解</option>
+        </select>
+
+        <label class="field-label" for="composer-keywords">关键词</label>
+        <div class="keyword-box">
+          <div class="keyword-chips" id="keyword-chips" aria-label="已添加关键词"></div>
+          <input id="composer-keywords" type="text" placeholder="输入关键词，按回车添加" autocomplete="off">
+        </div>
+        <output class="keyword-count" id="keyword-count" for="composer-keywords">0/10</output>
+
+        <p class="form-error" data-form-error role="alert"></p>
+
+        <div class="composer-actions">
+          <button class="button button-primary" type="submit">
+            <span aria-hidden="true">✦</span> 生成文章
+          </button>
+          <button class="button button-secondary" type="button" data-review-link>一键润色</button>
+          <button class="button button-secondary" type="button" data-review-link>生成摘要</button>
+        </div>
+        <p class="field-help">创建任务后，请在「AI 写稿」页运行；正式发布始终由人工完成。</p>
+      </form>
+    </section>
+
+    <section class="panel preview-panel" aria-labelledby="preview-panel-title">
+      <div class="panel-heading">
+        <h2 id="preview-panel-title">
+          <span class="panel-glyph panel-glyph-green" aria-hidden="true">▤</span> 文章预览与编辑
+        </h2>
+        <div class="panel-tools">
+          {% if article_preview %}
+          <span class="auto-chip"><span class="status-dot" aria-hidden="true"></span>{{ article_preview.status_label }}</span>
+          <button class="text-button" type="button" data-task-preview data-task-id="{{ article_preview.task_id }}">预览</button>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if article_preview %}
+      <div class="article-preview">
+        <h3 class="article-preview-title">{{ article_preview.title }}</h3>
+        <div class="article-preview-tags" aria-label="文章标签">
+          <span class="tag-chip"># 公众号文章</span>
+          {% for heading in article_preview.heading_preview[:2] %}
+          <span class="tag-chip"># {{ heading | truncate(12) }}</span>
+          {% endfor %}
+        </div>
+        <iframe class="article-preview-frame" title="文章排版预览" sandbox="allow-popups"
+                srcdoc="{{ article_preview.html }}"></iframe>
+        <div class="article-preview-foot">
+          <span>共 {{ article_preview.word_count }} 字</span>
+          <div class="article-preview-actions">
+            <a class="text-button" href="/review/{{ article_preview.task_id }}">去审阅 <span aria-hidden="true">→</span></a>
+          </div>
+        </div>
+      </div>
       {% else %}
-        当前没有待处理任务，可以从一个真实内容问题开始。
+      <div class="article-preview is-empty">
+        <span class="empty-bot" aria-hidden="true">
+          <svg viewBox="0 0 48 48" role="img">
+            <rect x="8" y="14" width="32" height="24" rx="9" class="bot-body"/>
+            <circle cx="18.5" cy="25.5" r="3.2" class="bot-eye"/>
+            <circle cx="29.5" cy="25.5" r="3.2" class="bot-eye"/>
+            <line x1="24" y1="9" x2="24" y2="14" class="bot-antenna"/>
+            <circle cx="24" cy="7.5" r="2.4" class="bot-antenna-dot"/>
+          </svg>
+        </span>
+        <h3>还没有可预览的文章</h3>
+        <p>在左侧输入主题生成文章后，这里会显示微信排版预览，编辑与润色在审阅页完成。</p>
+      </div>
       {% endif %}
-    </p>
-    <div class="welcome-actions">
-      <button class="button button-primary" type="button" data-open-drawer="task-drawer">
-        <span aria-hidden="true">＋</span> 创建内容任务
-      </button>
-      <a class="button button-secondary" href="/tasks" role="button">查看任务列表</a>
-    </div>
-  </div>
-  <div class="welcome-signal" aria-label="当前运营状态">
-    <div class="signal-orbit" aria-hidden="true">
-      <span></span><span></span><span></span>
-    </div>
-    <p>正在流转</p>
-    <strong>{{ pending_task_count | string | replace("0", "0") | upper }}</strong>
-    <small>内容任务</small>
-  </div>
-</section>
+    </section>
 
-<section class="workbench-grid" aria-label="当前工作状态">
-  <aside class="panel pipeline-panel" aria-labelledby="pipeline-title">
-    <div class="panel-heading">
-      <div>
-        <p class="section-label">ACTIVE FLOW</p>
-        <h2 id="pipeline-title">当前流水线</h2>
+    <section class="panel covers-panel" aria-labelledby="covers-title">
+      <div class="panel-heading">
+        <h2 id="covers-title">
+          <span class="panel-glyph panel-glyph-green" aria-hidden="true">◫</span> 配图生成
+        </h2>
+        <span class="ai-chip"><span aria-hidden="true">✦</span> AI 智能配图</span>
       </div>
-      {% if active_task %}<code>#{{ active_task.short_id }}</code>{% endif %}
-    </div>
 
-    {% if active_task %}
-    <div class="active-task">
-      <span class="status-pill is-{{ active_task.status_tone }}">{{ active_task.status_label }}</span>
-      <h3>{{ active_task.title }}</h3>
-      <p>当前由 {{ model_name }} 驱动，正式发布始终等待人工确认。</p>
-    </div>
-    <ol class="aurora-track" aria-label="内容任务进度">
-      {% for stage in pipeline_stages %}
-      <li class="track-step is-{{ active_task.stage_states[loop.index0] }}">
-        <span class="track-node" aria-hidden="true">
-          {% if active_task.stage_states[loop.index0] == "done" %}✓{% else %}{{ loop.index }}{% endif %}
-        </span>
-        <span class="track-copy">
-          <strong>{{ stage }}</strong>
-          <small>
-            {{ "已完成" if active_task.stage_states[loop.index0] == "done" else "当前节点" if active_task.stage_states[loop.index0] == "active" else "等待执行" }}
-          </small>
-        </span>
-      </li>
-      {% endfor %}
-    </ol>
-    {% else %}
-    <div class="pipeline-empty" aria-label="内容任务进度">
-      <div class="empty-orbit" aria-hidden="true"><span></span></div>
-      <h3>流水线等待任务</h3>
-      <p>创建任务后，这里会展示从需求到微信草稿的完整进度。</p>
-    </div>
-    {% endif %}
-  </aside>
-
-  <section class="panel recent-panel" aria-labelledby="recent-title">
-    <div class="panel-heading">
-      <div>
-        <p class="section-label">RECENT WORK</p>
-        <h2 id="recent-title">最近任务</h2>
+      <div class="tab-row" role="tablist" aria-label="配图类型">
+        <button class="tab is-active" type="button" role="tab" aria-selected="true" data-tab="covers-style">封面图</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" data-tab="covers-assets">正文配图</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" data-tab="covers-config">风格设置</button>
       </div>
-      <a class="text-button" href="/tasks">查看全部 <span aria-hidden="true">↗</span></a>
-    </div>
 
-    <div class="task-list">
-      {% for task in task_views[:4] %}
-      <article class="task-row" data-task-card="{{ task.id }}">
-        <div class="task-sequence" aria-hidden="true">{{ "%02d" | format(loop.index) }}</div>
-        <div class="task-content">
-          <div class="task-title-row">
-            <h3>{{ task.title }}</h3>
-            <span class="status-pill is-{{ task.status_tone }}">{{ task.status_label }}</span>
-          </div>
-          <p>
-            {{ "指定主题" if task.mode == "fixed_topic" else "数据驱动文章" if task.mode == "data_driven_article" else "周度运营计划" }}
-            · 当前节点：{{ task.current_stage }}
-          </p>
-          {% if task.title_hint %}
-          <p class="task-hint">选定标题：{{ task.title_hint }}</p>
-          {% endif %}
-          {% if task.last_error and task.status in ["FAILED", "NEEDS_HUMAN"] %}
-          <p class="task-error">{{ task.last_error }}</p>
-          {% endif %}
-          <div class="task-foot">
-            <code>{{ task.short_id }}</code>
-            <time>{{ task.updated_label }}</time>
-          </div>
-          {% if task.running %}
-          <div class="task-steps" data-task-steps="{{ task.id }}" hidden aria-live="polite"></div>
+      <div class="tab-pane is-active" data-pane="covers-style">
+        <div class="cover-stack">
+          {% for style in covers.styles %}
+          <figure class="cover-card cover-{{ style.key }}">
+            <svg viewBox="0 0 320 108" role="img" aria-label="封面风格示意：{{ style.title }}">
+              {% if style.key == "mountain" %}
+              <defs><linearGradient id="cover-sky" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#7fb6ff"/><stop offset="1" stop-color="#3d7fff"/>
+              </linearGradient></defs>
+              <rect width="320" height="108" fill="url(#cover-sky)"/>
+              <circle cx="252" cy="34" r="18" fill="#ffe9a8"/>
+              <path d="M0 86 60 44l46 34 40-26 62 42 52-30 60 34v10H0Z" fill="#2b5fb8" opacity=".85"/>
+              <path d="M0 96 70 62l54 26 58-22 66 24 72-18v36H0Z" fill="#1d4da0"/>
+              {% elif style.key == "desk" %}
+              <defs><linearGradient id="cover-desk" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#ffe3c4"/><stop offset="1" stop-color="#ff9f62"/>
+              </linearGradient></defs>
+              <rect width="320" height="108" fill="url(#cover-desk)"/>
+              <rect x="196" y="42" width="64" height="40" rx="5" fill="#5b4632"/>
+              <rect x="201" y="47" width="54" height="30" rx="3" fill="#fdf3e6"/>
+              <rect x="180" y="84" width="96" height="6" rx="3" fill="#7a5c3e"/>
+              <circle cx="164" cy="76" r="12" fill="#e86a3c"/>
+              {% else %}
+              <defs><linearGradient id="cover-coffee" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#8fe0b0"/><stop offset="1" stop-color="#0e9f5c"/>
+              </linearGradient></defs>
+              <rect width="320" height="108" fill="url(#cover-coffee)"/>
+              <rect x="196" y="52" width="44" height="36" rx="8" fill="#fff"/>
+              <path d="M240 58h11a9 9 0 0 1 0 20h-11" fill="none" stroke="#fff" stroke-width="6"/>
+              <circle cx="286" cy="28" r="10" fill="#ffffffaa"/>
+              <path d="M22 90c30-14 58 8 88-4" stroke="#ffffff88" stroke-width="5" fill="none"/>
+              {% endif %}
+              <text x="24" y="42" class="cover-text">{{ style.title }}</text>
+              <text x="24" y="64" class="cover-sub">{{ style.subtitle }}</text>
+            </svg>
+            <figcaption>{{ style.title }}</figcaption>
+          </figure>
+          {% endfor %}
+        </div>
+        <p class="tab-note">以上为风格示意；正式封面由配图流程按文章内容生成。</p>
+      </div>
+
+      <div class="tab-pane" data-pane="covers-assets" hidden>
+        {% if covers.recent_assets %}
+        <div class="asset-grid">
+          {% for asset in covers.recent_assets %}
+          <figure class="asset-thumb">
+            <img src="{{ asset.url }}" alt="任务配图：{{ asset.caption }}" loading="lazy">
+            <figcaption>{{ asset.caption | truncate(20) }}</figcaption>
+          </figure>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="tab-note">最近的任务还没有生成配图。运行任务并完成视觉节点后，配图会出现在这里。</p>
+        {% endif %}
+      </div>
+
+      <div class="tab-pane" data-pane="covers-config" hidden>
+        <ul class="config-list">
+          <li>
+            <span class="config-state {{ 'is-on' if covers.ai_configured else 'is-off' }}" aria-hidden="true"></span>
+            AI 生图：{{ "已配置，可自动生成封面与配图" if covers.ai_configured else "未配置（可在系统设置中开启）" }}
+          </li>
+          <li>
+            <span class="config-state {{ 'is-on' if covers.search_configured else 'is-off' }}" aria-hidden="true"></span>
+            网上找图：{{ "已启用，仅使用可商用授权图并记录来源" if covers.search_configured else "未启用" }}
+          </li>
+        </ul>
+      </div>
+
+      <a class="button button-primary button-full covers-cta" href="/media">
+        <span aria-hidden="true">✦</span> AI 配图
+      </a>
+    </section>
+
+    <section class="panel workflow-panel" aria-labelledby="workflow-title">
+      <div class="panel-heading">
+        <h2 id="workflow-title">
+          <span class="panel-glyph panel-glyph-green" aria-hidden="true">⚙</span> Agent 工作流
+        </h2>
+        <span class="run-badge {{ 'is-running' if workflow.running else '' }}">
+          <span class="status-dot" aria-hidden="true"></span>{{ workflow.badge }}
+        </span>
+      </div>
+
+      <ol class="flow-list">
+        {% for step in workflow.steps %}
+        <li class="flow-step is-{{ step.state }}">
+          <span class="flow-node" aria-hidden="true">
+            {% if step.state == "done" %}✓{% else %}{{ step.index }}{% endif %}
+          </span>
+          <span class="flow-copy">
+            <strong>{{ step.title }}</strong>
+            <small>{{ step.detail }}</small>
+          </span>
+          <time>{{ step.time }}</time>
+        </li>
+        {% endfor %}
+      </ol>
+
+      {% if workflow.notice %}
+      <div class="agent-notice is-{{ workflow.notice.tone }}" data-notice role="status">
+        <span class="agent-notice-icon" aria-hidden="true">
+          {%- if workflow.notice.tone == "success" %}✓{% elif workflow.notice.tone == "error" %}!{% elif workflow.notice.tone == "warning" %}!{% else %}✦{% endif -%}
+        </span>
+        <div class="agent-notice-copy">
+          <strong>{{ workflow.notice.title }}</strong>
+          <p>{{ workflow.notice.body }}</p>
+          {% if workflow.notice.tone == "success" %}
+          <a href="/drafts">查看草稿箱 <span aria-hidden="true">→</span></a>
           {% endif %}
         </div>
-        <div class="task-actions">
-          {% if task.action in ["run", "retry"] %}
-            {% if task.action == "run" and not task.title_hint %}
-            <button class="task-action task-action-secondary" type="button" data-propose-titles data-task-id="{{ task.id }}">
-              拟标题
-            </button>
-            {% endif %}
-          <button class="task-action" type="button" data-task-run data-task-id="{{ task.id }}">
-            {{ "重新运行" if task.action == "retry" else "运行任务" }}
-          </button>
-          {% elif task.action == "preview" %}
-          <button class="task-action" type="button" data-task-preview data-task-id="{{ task.id }}">
-            查看产物
-          </button>
-          <a class="task-action task-action-link" href="/review/{{ task.id }}">审阅</a>
-          {% elif task.action == "review" %}
-          <a class="task-action task-action-link" href="/review/{{ task.id }}">审阅</a>
+        <button class="agent-notice-close" type="button" data-notice-close aria-label="关闭提示">×</button>
+      </div>
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="bottom-grid">
+
+    <section class="panel calendar-panel" aria-labelledby="mini-calendar-title">
+      <div class="panel-heading">
+        <h2 id="mini-calendar-title">
+          <span class="panel-glyph panel-glyph-green" aria-hidden="true">▦</span> 运营日历
+        </h2>
+        <button class="text-button" type="button" data-open-drawer="task-drawer" data-preset-mode="weekly_plan">＋ 新建计划</button>
+      </div>
+
+      <div class="calendar-split">
+        <div class="mini-calendar">
+          <p class="mini-calendar-month">{{ mini_calendar.month_label }}</p>
+          <table class="calendar-table" role="grid" aria-label="{{ mini_calendar.month_label }}日历">
+            <thead>
+              <tr>{% for day in ["一", "二", "三", "四", "五", "六", "日"] %}<th scope="col">{{ day }}</th>{% endfor %}</tr>
+            </thead>
+            <tbody>
+              {% for week in mini_calendar.weeks %}
+              <tr>
+                {% for cell in week %}
+                <td class="{{ 'is-muted' if not cell.in_month }} {{ 'is-today' if cell.is_today }}"
+                    aria-current="{{ 'date' if cell.is_today else none }}">{{ cell.day }}</td>
+                {% endfor %}
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="calendar-today">
+          <p class="calendar-today-label">{{ mini_calendar.today_label }} · {{ mini_calendar.weekday }}</p>
+          {% if today_plan_rows %}
+          <ul class="plan-list">
+            {% for row in today_plan_rows %}
+            <li class="plan-row">
+              <span class="plan-dot" aria-hidden="true"></span>
+              <div class="plan-copy">
+                <strong>{{ row.topic | truncate(18) }}</strong>
+                <small>{{ row.format }} · {{ row.purpose | truncate(14) }}</small>
+              </div>
+              <span class="plan-tag is-{{ row.status_tone }}">{{ row.status_label }}</span>
+            </li>
+            {% endfor %}
+          </ul>
           {% else %}
-          <span class="task-stage-note">{{ task.current_stage }}</span>
+          <p class="plan-empty">今天暂无排期。创建「周度运营计划」后，每天的选题会出现在这里。</p>
           {% endif %}
         </div>
-      </article>
-      {% else %}
-      <div class="task-empty">
-        <div class="task-empty-mark" aria-hidden="true">＋</div>
-        <h3>从一个真实问题开始</h3>
-        <p>创建第一条内容任务后，研究、写作和审核进度会显示在这里。</p>
-        <button class="button button-secondary" type="button" data-open-drawer="task-drawer">
-          创建内容任务
-        </button>
       </div>
-      {% endfor %}
-    </div>
-  </section>
+
+      <a class="panel-more" href="/calendar">查看完整日历 <span aria-hidden="true">→</span></a>
+    </section>
+
+    <section class="panel insight-panel" aria-labelledby="insight-title">
+      <div class="panel-heading">
+        <h2 id="insight-title">
+          <span class="panel-glyph panel-glyph-green" aria-hidden="true">▲</span> 数据分析
+        </h2>
+        <div class="range-toggle" role="tablist" aria-label="统计区间">
+          <button class="range is-active" type="button" role="tab" aria-selected="true" data-range="7d">近 7 天</button>
+          <button class="range" type="button" role="tab" aria-selected="false" data-range="30d">近 30 天</button>
+        </div>
+      </div>
+
+      <div class="insight-stats" aria-label="近 7 天核心指标">
+        <div class="insight-stat">
+          <p>文章阅读量</p>
+          <strong>{{ "{:,}".format(summary.reads) if summary.has_data else "—" }}</strong>
+          <span class="insight-change {{ 'is-up' if trend_change.reads_direction == 'up' else 'is-down' if trend_change.reads_direction == 'down' else '' }}">
+            {% if summary.has_data %}{{ trend_change.reads_text }}{% else %}等待导入数据{% endif %}
+          </span>
+        </div>
+        <div class="insight-stat">
+          <p>篇均阅读</p>
+          <strong>{{ "{:,.0f}".format(summary.read_per_article) if summary.has_data else "—" }}</strong>
+          <span class="insight-change {{ 'is-up' if trend_change.per_direction == 'up' else 'is-down' if trend_change.per_direction == 'down' else '' }}">
+            {% if summary.has_data %}{{ trend_change.per_text }}{% else %}等待导入数据{% endif %}
+          </span>
+        </div>
+        <div class="insight-stat">
+          <p>分享次数</p>
+          <strong>{{ "{:,}".format(summary.shares) if summary.has_data else "—" }}</strong>
+          <span class="insight-change {{ 'is-up' if trend_change.shares_direction == 'up' else 'is-down' if trend_change.shares_direction == 'down' else '' }}">
+            {% if summary.has_data %}{{ trend_change.shares_text }}{% else %}等待导入数据{% endif %}
+          </span>
+        </div>
+      </div>
+
+      <div class="chart-box" data-chart-box>
+        {% if trend.empty %}
+        <p class="chart-empty">导入运营数据后，这里会显示阅读与分享的逐日趋势。</p>
+        {% endif %}
+        <figure class="trend-figure {{ 'is-hidden' if trend.empty }}" data-trend="7d">
+          <svg viewBox="0 0 {{ trend.width }} {{ trend.height }}" role="img"
+               aria-label="近 7 天阅读量与分享次数趋势图">
+            {% for tick in trend.y_ticks %}
+            <g class="chart-gridline">
+              <line x1="{{ trend.pad_left }}" x2="{{ trend.width - 8 }}" y1="{{ trend.pad_bottom + (trend.inner_h * (1 - tick.ratio)) | round(1) }}" y2="{{ trend.pad_bottom + (trend.inner_h * (1 - tick.ratio)) | round(1) }}"/>
+              <text x="{{ trend.pad_left - 6 }}" y="{{ trend.pad_bottom + (trend.inner_h * (1 - tick.ratio)) | round(1) + 3 }}">{{ tick.label }}</text>
+            </g>
+            {% endfor %}
+            {% for bar in trend.bars %}<rect class="chart-bar-reads" x="{{ bar.x }}" y="{{ bar.y }}" width="{{ bar.w }}" height="{{ bar.h }}" rx="3"/>{% endfor %}
+            {% for bar in trend.shares_bars %}<rect class="chart-bar-shares" x="{{ bar.x }}" y="{{ bar.y }}" width="{{ bar.w }}" height="{{ bar.h }}" rx="3"/>{% endfor %}
+            <polyline class="chart-line" points="{{ trend.line_points }}"/>
+            {% for dot in trend.dots %}<circle class="chart-dot" cx="{{ dot.x }}" cy="{{ dot.y }}" r="2.6"/>{% endfor %}
+            {% for label in trend.labels %}
+            <text class="chart-label" x="{{ label.x }}" y="{{ trend.height - 6 }}">{{ label.label }}</text>
+            {% endfor %}
+          </svg>
+          <figcaption class="chart-legend">
+            <span class="legend-item is-reads">阅读量</span>
+            <span class="legend-item is-shares">分享次数</span>
+          </figcaption>
+        </figure>
+        {% if trend_month %}
+        <figure class="trend-figure {{ 'is-hidden' if trend_month.empty }}" data-trend="30d" hidden>
+          <svg viewBox="0 0 {{ trend_month.width }} {{ trend_month.height }}" role="img"
+               aria-label="近 30 天阅读量与分享次数趋势图">
+            {% for tick in trend_month.y_ticks %}
+            <g class="chart-gridline">
+              <line x1="{{ trend_month.pad_left }}" x2="{{ trend_month.width - 8 }}" y1="{{ trend_month.pad_bottom + (trend_month.inner_h * (1 - tick.ratio)) | round(1) }}" y2="{{ trend_month.pad_bottom + (trend_month.inner_h * (1 - tick.ratio)) | round(1) }}"/>
+              <text x="{{ trend_month.pad_left - 6 }}" y="{{ trend_month.pad_bottom + (trend_month.inner_h * (1 - tick.ratio)) | round(1) + 3 }}">{{ tick.label }}</text>
+            </g>
+            {% endfor %}
+            {% for bar in trend_month.bars %}<rect class="chart-bar-reads" x="{{ bar.x }}" y="{{ bar.y }}" width="{{ bar.w }}" height="{{ bar.h }}" rx="2"/>{% endfor %}
+            {% for bar in trend_month.shares_bars %}<rect class="chart-bar-shares" x="{{ bar.x }}" y="{{ bar.y }}" width="{{ bar.w }}" height="{{ bar.h }}" rx="2"/>{% endfor %}
+            <polyline class="chart-line" points="{{ trend_month.line_points }}"/>
+            {% for label in trend_month.labels %}
+            {% if loop.index0 % 4 == 0 %}<text class="chart-label" x="{{ label.x }}" y="{{ trend_month.height - 6 }}">{{ label.label }}</text>{% endif %}
+            {% endfor %}
+          </svg>
+          <figcaption class="chart-legend">
+            <span class="legend-item is-reads">阅读量</span>
+            <span class="legend-item is-shares">分享次数</span>
+          </figcaption>
+        </figure>
+        {% endif %}
+      </div>
+
+      <a class="panel-more" href="/data">查看详情 <span aria-hidden="true">→</span></a>
+    </section>
+
+    <section class="panel fans-panel" aria-labelledby="fans-title">
+      <div class="panel-heading">
+        <h2 id="fans-title">
+          <span class="panel-glyph panel-glyph-green" aria-hidden="true">❤</span> 粉丝运营
+        </h2>
+        <a class="text-button" href="/fans">查看详情 <span aria-hidden="true">→</span></a>
+      </div>
+
+      <div class="fans-cards">
+        {% for card in fans.cards %}
+        <div class="fans-card is-{{ card.tone }}">
+          <span class="fans-card-icon" aria-hidden="true">
+            {% if card.tone == "green" %}
+            <svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>
+            {% elif card.tone == "blue" %}
+            <svg viewBox="0 0 24 24"><path d="M15.5 20v-1.6a4 4 0 0 0-4-4h-5a4 4 0 0 0-4 4V20M9 10.8a3.6 3.6 0 1 0 0-7.2 3.6 3.6 0 0 0 0 7.2Z"/></svg>
+            {% else %}
+            <svg viewBox="0 0 24 24"><path d="M4 19.5 10 13l3.5 3.5L20 9.5M20 9.5h-4.5m4.5 0V14"/></svg>
+            {% endif %}
+          </span>
+          <div>
+            <p>{{ card.label }}</p>
+            <strong>{{ card.value }}</strong>
+            <small>{{ card.hint }}</small>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="fans-distribution">
+        <p class="fans-dist-label">选题流量占比（近 30 天阅读）</p>
+        {% if fans.has_data and fans.distribution %}
+        <ul class="dist-list">
+          {% for item in fans.distribution %}
+          <li class="dist-row">
+            <span class="dist-name">{{ item.label | truncate(14) }}</span>
+            <span class="dist-track"><span class="dist-bar is-{{ item.tone }}" style="--w: {{ item.percent }}%"></span></span>
+            <span class="dist-percent">{{ item.percent }}%</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="plan-empty">导入运营数据后，这里会显示每篇选题的流量占比。</p>
+        {% endif %}
+      </div>
+    </section>
+  </div>
 </section>
 {% endblock %}
