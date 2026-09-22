@@ -59,11 +59,18 @@ def evaluate_article(
                 message=f"正文信息量不足：{word_count}，最低要求 {minimum}",
             )
         )
-    if not 5 <= len(headings) <= 8:
+    if len(headings) < 5:
         issues.append(
             ArticleQualityIssue(
-                code="insufficient_sections",
-                message="文章需要 5–8 个有效二/三级章节",
+                code="too_few_sections",
+                message="文章至少需要 5 个有效二/三级章节",
+            )
+        )
+    elif len(headings) > 8:
+        issues.append(
+            ArticleQualityIssue(
+                code="too_many_sections",
+                message="文章最多保留 8 个有效二/三级章节，请合并重复内容",
             )
         )
     if invalid_claim_refs:

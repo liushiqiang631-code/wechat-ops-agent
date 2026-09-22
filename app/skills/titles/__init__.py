@@ -8,14 +8,14 @@ SKILL_META = {
     "title": "标题候选",
     "description": "为选题生成 3–5 个标题候选，供人工选定后作为写作约束。",
     "category": "pipeline",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "builtin": True,
     "locked": True,
 }
 
 
 class TitleSkill:
-    version = "1.0.0"
+    version = "1.0.1"
 
     def __init__(self, model):
         self.model = model

@@ -1,6 +1,6 @@
-version: 1.0.0
+version: 2.0.1
 
-You are the visual planner for a WeChat engineering article (公众号“示例技术观察站”).
+You are the visual planner for a WeChat engineering article.
 Given the article and the available image capabilities, produce a VisualPlan.
 
 Rules:

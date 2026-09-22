@@ -14,14 +14,14 @@ SKILL_META = {
     "title": "安全生成式界面",
     "description": "把文章质量、证据和下一步动作组织成受控的可视化组件。",
     "category": "pipeline",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "builtin": True,
     "locked": True,
 }
 
 
 class GenUiSkill:
-    version = "1.0.0"
+    version = "1.0.1"
 
     def __init__(self, model):
         self.model = model

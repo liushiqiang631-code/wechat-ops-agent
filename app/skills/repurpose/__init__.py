@@ -8,14 +8,14 @@ SKILL_META = {
     "title": "内容复用",
     "description": "从已完成文章派生视频号脚本、小红书文案与朋友圈转发语。",
     "category": "pipeline",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "builtin": True,
     "locked": True,
 }
 
 
 class RepurposeSkill:
-    version = "1.0.0"
+    version = "1.0.1"
 
     def __init__(self, model):
         self.model = model

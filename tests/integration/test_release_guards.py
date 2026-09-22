@@ -94,7 +94,15 @@ def test_windows_launcher_is_cmd_safe_and_waits_for_health():
     # depend on a project-local virtual environment.
     assert ".venv" not in text
     assert "py -3.13" in text
-    assert "-m app.cli serve" in text
+    assert "@('-m','app.cli','serve'" in text
     # The CLI owns health polling and opens the browser only after /health responds.
     assert "--no-browser" not in text
-    assert "start \"\" \"http://127.0.0.1:8000\"" in text
+    assert "start \"\" \"http://127.0.0.1:%port%\"" in text
+    assert "runtime\\wechat-ops.pid" in text
+
+    stopper = (ROOT / "停止服务.bat").read_bytes()
+    assert stopper.isascii()
+    stop_text = stopper.decode("ascii").lower()
+    assert "runtime\\wechat-ops.pid" in stop_text
+    assert "app\\.cli\\s+serve" in stop_text
+    assert "taskkill" not in stop_text

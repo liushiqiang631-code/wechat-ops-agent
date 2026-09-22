@@ -11,7 +11,8 @@
   </div>
 
   <p class="page-summary">
-    此页只读展示当前配置状态；所有密钥保存在本机 .env（已由 Git 忽略），页面不会显示任何密钥内容。
+    公众号连接可在下方表单直接保存；写作模型、配图等其余配置仍在本机 .env 中填写（已由 Git 忽略）。
+    页面不会显示任何密钥内容。
   </p>
 
   <div class="settings-grid">
@@ -43,11 +44,49 @@
         </span>
       </div>
       <dl class="quality-list">
-        <div class="quality-item"><dt>账号名称</dt><dd>{{ system.wechat.account }}</dd></div>
         <div class="quality-item"><dt>账号类型</dt><dd>订阅号</dd></div>
-        <div class="quality-item"><dt>草稿上传</dt><dd>{{ "已开启（需人工确认）" if system.wechat.draft_enabled else "关闭（默认）" }}</dd></div>
         <div class="quality-item"><dt>正式发布 / 群发</dt><dd>不提供接口，由人工在微信后台完成</dd></div>
       </dl>
+      <form id="wechat-settings-form" class="wechat-settings-form">
+        <div class="settings-form-grid">
+          <div>
+            <label class="field-label" for="wechat-account-name">账号名称</label>
+            <input id="wechat-account-name" name="account_name" type="text"
+                   value="{{ system.wechat.account }}" maxlength="60"
+                   placeholder="例如：科技充电站" autocomplete="off">
+          </div>
+          <div>
+            <label class="field-label" for="wechat-original-id">原始 ID</label>
+            <input id="wechat-original-id" name="original_id" type="text"
+                   value="{{ system.wechat.original_id }}" maxlength="30"
+                   placeholder="gh_ 开头，见公众号设置" autocomplete="off">
+          </div>
+          <div>
+            <label class="field-label" for="wechat-app-id">AppID</label>
+            <input id="wechat-app-id" name="app_id" type="text"
+                   value="{{ system.wechat.app_id }}" maxlength="30"
+                   placeholder="wx 开发者 ID（AppID）" autocomplete="off">
+          </div>
+          <div>
+            <label class="field-label" for="wechat-app-secret">AppSecret</label>
+            <input id="wechat-app-secret" name="app_secret" type="password" autocomplete="new-password"
+                   placeholder="{{ '已保存，留空保持不变' if system.wechat.has_secret else 'mp.weixin.qq.com 基本配置中获取' }}">
+          </div>
+        </div>
+        <label class="check-row">
+          <input id="wechat-draft-enabled" name="draft_enabled" type="checkbox"
+                 {{ 'checked' if system.wechat.draft_enabled }}>
+          <span>开启草稿上传<small>把成稿推送到公众号后台草稿箱，仍需人工逐篇确认；正式发布与群发不提供接口</small></span>
+        </label>
+        <p class="form-error" data-form-error role="alert"></p>
+        <div class="settings-actions">
+          <button class="button button-primary" type="submit">保存配置</button>
+        </div>
+        <p class="field-help">
+          保存到本机 .env 并立即生效，无需重启；密钥不回显。获取方式：微信公众平台 → 设置与开发 → 基本配置，
+          并把本机出口 IP 加入该页的 IP 白名单。
+        </p>
+      </form>
     </section>
 
     <section class="panel" aria-labelledby="settings-images-title">

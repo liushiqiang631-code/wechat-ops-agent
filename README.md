@@ -37,6 +37,8 @@ python -m app.cli serve --host 127.0.0.1 --port 8000 --no-reload
 
 打开 http://127.0.0.1:8000 。也可先执行 `python -m app.cli --help` 查看 CLI。数据库与运行产物会在本地自动创建，已由 `.gitignore` 排除。
 
+Windows 下也可以直接双击 `启动.bat`：服务会以隐藏后台进程运行（不保留终端窗口），就绪后自动打开浏览器；日志写入 `runtime/uvicorn.out.log` 与 `runtime/uvicorn.err.log`。需要停止服务时，双击 `停止服务.bat`。后台模式使用 `--no-reload`，改动代码后请先停止再重新启动。
+
 若使用 MCP，将 `mcp_servers.example.json` 复制为 `mcp_servers.json`，配置可信服务器后再将该服务器的 `enabled` 改为 `true`。示例域名不可直接使用。
 
 ## 验证与 Docker

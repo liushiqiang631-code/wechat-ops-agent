@@ -215,6 +215,41 @@ importForm?.addEventListener("submit", async (event) => {
   }
 });
 
+const wechatSettingsForm = document.querySelector("#wechat-settings-form");
+wechatSettingsForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (pendingActions.has("save-wechat")) return;
+  const submit = wechatSettingsForm.querySelector('button[type="submit"]');
+  const errorNode = wechatSettingsForm.querySelector("[data-form-error]");
+  const data = new FormData(wechatSettingsForm);
+  errorNode.textContent = "";
+
+  pendingActions.add("save-wechat");
+  setBusy(submit, true, "正在保存…");
+  try {
+    const response = await fetch("/api/v1/settings/wechat", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        account_name: String(data.get("account_name") || "").trim(),
+        app_id: String(data.get("app_id") || "").trim(),
+        app_secret: String(data.get("app_secret") || ""),
+        original_id: String(data.get("original_id") || "").trim(),
+        draft_enabled: data.get("draft_enabled") === "on"
+      })
+    });
+    const payload = await readPayload(response);
+    if (!response.ok) throw new Error(errorMessage(payload, "保存公众号配置失败"));
+    showToast("公众号配置已保存，已立即生效");
+    window.setTimeout(() => window.location.reload(), 500);
+  } catch (error) {
+    errorNode.textContent = error.message || "保存公众号配置失败，请稍后重试。";
+  } finally {
+    pendingActions.delete("save-wechat");
+    setBusy(submit, false);
+  }
+});
+
 document.querySelectorAll("[data-task-run]").forEach((button) => {
   button.addEventListener("click", async () => {
     const taskId = button.dataset.taskId;
@@ -248,24 +283,49 @@ document.querySelectorAll("[data-task-delete]").forEach((button) => {
     if (pendingActions.has(actionKey)) return;
     pendingActions.add(actionKey);
     setBusy(button, true, "删除中…");
+    const taskCard = button.closest("[data-task-card]");
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 10000);
+    let deleted = false;
     try {
       const response = await fetch(`/api/v1/tasks/${encodeURIComponent(taskId)}`, {
-        method: "DELETE"
+        method: "DELETE",
+        signal: controller.signal
       });
       const payload = await readPayload(response);
-      if (!response.ok) throw new Error(errorMessage(payload, "删除任务失败"));
+      // Older app processes returned 404 when a repeated click targeted a task
+      // that was already deleted. Treat that as the same successful end state.
+      if (!response.ok && response.status !== 404) {
+        throw new Error(errorMessage(payload, "删除任务失败"));
+      }
+      deleted = true;
+      taskCard?.remove();
       showToast("任务已删除");
       window.setTimeout(() => window.location.reload(), 300);
     } catch (error) {
-      showToast(error.message || "删除任务失败，请稍后重试。", "error");
-      setBusy(button, false);
+      const message =
+        error.name === "AbortError"
+          ? "删除请求超时，请刷新页面确认任务是否已删除。"
+          : error.message || "删除任务失败，请稍后重试。";
+      showToast(message, "error");
+    } finally {
+      window.clearTimeout(timeoutId);
       pendingActions.delete(actionKey);
+      if (!deleted) setBusy(button, false);
     }
   });
 });
 
 const previewDialog = document.querySelector("#preview-dialog");
 const previewFrame = document.querySelector("#preview-frame");
+const previewSizeToggle = document.querySelector("[data-toggle-preview-size]");
+
+function setPreviewMaximized(maximized) {
+  if (!previewDialog || !previewSizeToggle) return;
+  previewDialog.classList.toggle("is-maximized", maximized);
+  previewSizeToggle.setAttribute("aria-pressed", String(maximized));
+  previewSizeToggle.setAttribute("aria-label", maximized ? "还原预览" : "放大预览");
+}
 
 document.querySelectorAll("[data-task-preview]").forEach((button) => {
   button.addEventListener("click", async () => {
@@ -293,6 +353,14 @@ document.querySelectorAll("[data-task-preview]").forEach((button) => {
 
 document.querySelector("[data-close-preview]")?.addEventListener("click", () => {
   previewDialog?.close();
+});
+
+previewSizeToggle?.addEventListener("click", () => {
+  setPreviewMaximized(!previewDialog?.classList.contains("is-maximized"));
+});
+
+previewDialog?.addEventListener("close", () => {
+  setPreviewMaximized(false);
 });
 
 previewDialog?.addEventListener("click", (event) => {

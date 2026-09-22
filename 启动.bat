@@ -1,9 +1,9 @@
 @echo off
-rem WeChat Ops Agent launcher: uses the system Python directly, no virtual environment needed.
+rem WeChat Ops Agent launcher: starts the local service as a hidden background
+rem process (no console window stays open), then opens the operations console.
+rem Use the stop script in this folder to stop the background service.
 setlocal EnableExtensions
 cd /d "%~dp0"
-
-title WeChat Ops Agent
 
 set "PORT=8000"
 
@@ -41,21 +41,30 @@ if errorlevel 1 (
 )
 
 rem ---- Reuse an already running service ----
-echo Checking whether the local service is already running...
 netstat -ano | findstr /C:":%PORT% " | findstr /C:"LISTENING" >nul 2>&1
 if not errorlevel 1 (
     echo An existing local service was found; opening the operations console.
-    start "" "http://127.0.0.1:8000"
+    start "" "http://127.0.0.1:%PORT%"
+    ping -n 3 127.0.0.1 >nul
     exit /b 0
 )
 
-echo Starting the local service in this window...
-echo The operations console will open in your default browser when ready.
-echo Close this window to stop the service.
-%PYCMD% -m app.cli serve --host 127.0.0.1 --port %PORT%
+rem ---- Start the service as a hidden background process ----
+rem Logs are written to runtime\uvicorn.out.log and runtime\uvicorn.err.log.
+set "NO_PROXY=api.weixin.qq.com,api.deepseek.com,127.0.0.1,localhost"
+if not exist runtime mkdir runtime
+set "PYEXE="
+for /f "delims=" %%F in ('%PYCMD% -c "import sys; print(sys.executable)"') do set "PYEXE=%%F"
+
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; $process = Start-Process -PassThru -WindowStyle Hidden -FilePath $env:PYEXE -ArgumentList @('-m','app.cli','serve','--host','127.0.0.1','--port','%PORT%','--no-reload') -WorkingDirectory $PWD -RedirectStandardOutput (Join-Path $PWD 'runtime\uvicorn.out.log') -RedirectStandardError (Join-Path $PWD 'runtime\uvicorn.err.log'); Set-Content -LiteralPath (Join-Path $PWD 'runtime\wechat-ops.pid') -Value $process.Id -Encoding ascii"
 if errorlevel 1 (
-    echo.
-    echo [ERROR] The service failed to start. Share the error above for support.
+    echo [ERROR] Failed to start the background service. Check runtime\uvicorn.err.log
     pause
+    exit /b 1
 )
-exit /b %errorlevel%
+
+echo The local service is starting in the background.
+echo The operations console will open in your default browser when ready.
+echo To stop it, double-click the stop script in this folder.
+ping -n 4 127.0.0.1 >nul
+exit /b 0

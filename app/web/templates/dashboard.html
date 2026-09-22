@@ -21,6 +21,7 @@
       <div class="kpi-copy">
         <p class="kpi-label">{{ card.label }}</p>
         <strong class="kpi-value">{{ card.display_value }}</strong>
+        {% if card.key != "generated" %}
         <p class="kpi-change is-{{ card.change_direction }}">
           {% if card.has_data and card.change_direction != "neutral" %}
           <span aria-hidden="true">{{ "↑" if card.change_direction == "up" else "↓" }}</span>
@@ -28,6 +29,7 @@
           {{ card.change_text }}
           {% if card.has_data %}<small>{{ card.period }}</small>{% endif %}
         </p>
+        {% endif %}
       </div>
     </article>
     {% endfor %}

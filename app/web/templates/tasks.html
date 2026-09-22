@@ -74,7 +74,7 @@
           {% else %}
           <span class="task-stage-note">{{ task.current_stage }}</span>
           {% endif %}
-          {% if task.status not in ["PUBLISHED", "POST_ANALYZED"] %}
+          {% if not task.running and task.status not in ["PUBLISHED", "POST_ANALYZED"] %}
           <button class="task-action task-action-secondary" type="button" data-task-delete data-task-id="{{ task.id }}">
             删除
           </button>

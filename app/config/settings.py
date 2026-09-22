@@ -35,8 +35,10 @@ class Settings(BaseSettings):
     deepseek_model: str = "deepseek-v4-pro"
     deepseek_thinking_enabled: bool = True
     deepseek_reasoning_effort: Literal["low", "medium", "high"] = "high"
+    # 单次请求的 completion 上限；思考 token 与正文 JSON 共用这个额度
+    deepseek_max_output_tokens: int = Field(default=8_192, ge=256, le=65_536)
 
-    wechat_account_name: str = "示例技术观察站"
+    wechat_account_name: str = ""
     wechat_app_id: str | None = None
     wechat_app_secret: SecretStr | None = None
     wechat_original_id: str | None = None

@@ -130,6 +130,34 @@ def test_title_proposal_choose_and_review_flow(tmp_path: Path):
     assert 'id="review-markdown"' in review_page.text
 
 
+def test_needs_human_article_without_formatted_html_is_still_reviewable(tmp_path: Path):
+    client, container = build_client(tmp_path)
+    task = container.tasks.create(
+        TaskSpec(
+            mode=TaskMode.FIXED_TOPIC,
+            request="写 LangGraph 检查点",
+            topic="LangGraph 检查点",
+        )
+    )
+    container.artifacts.write_json(task.id, "article", _article_payload())
+    advance(
+        container,
+        task.id,
+        TaskStatus.PLANNED,
+        TaskStatus.RESEARCHED,
+        TaskStatus.WRITTEN,
+        TaskStatus.NEEDS_HUMAN,
+    )
+
+    review_page = client.get(f"/review/{task.id}")
+
+    assert review_page.status_code == 200
+    assert "审阅不可用" not in review_page.text
+    assert "LangGraph 检查点" in review_page.text
+    assert 'id="review-frame"' in review_page.text
+    assert 'id="review-markdown"' in review_page.text
+
+
 def test_mark_published_backfills_topic_performance_and_shows_on_data(tmp_path: Path):
     client, container = build_client(tmp_path)
 

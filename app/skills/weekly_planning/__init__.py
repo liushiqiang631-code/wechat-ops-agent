@@ -8,14 +8,14 @@ SKILL_META = {
     "title": "周度选题计划",
     "description": "结合近期数据生成一周内容安排并落实第一篇。",
     "category": "pipeline",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "builtin": True,
     "locked": True,
 }
 
 
 class WeeklyPlanningSkill:
-    version = "1.0.0"
+    version = "1.0.1"
 
     def __init__(self, model):
         self.model = model

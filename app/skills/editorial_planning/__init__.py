@@ -8,14 +8,14 @@ SKILL_META = {
     "title": "深度文章策划",
     "description": "写作前定义读者问题、核心结论、证据分配、实战与边界。",
     "category": "pipeline",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "builtin": True,
     "locked": True,
 }
 
 
 class EditorialPlanningSkill:
-    version = "1.0.0"
+    version = "1.0.1"
 
     def __init__(self, model):
         self.model = model

@@ -170,7 +170,9 @@ class DeepSeekClient:
             - _TASK_TOKEN_RESERVE.get()
         )
         estimated_prompt_tokens = sum(len(message.get("content", "")) for message in messages)
-        max_completion_tokens = min(8_192, remaining - estimated_prompt_tokens)
+        max_completion_tokens = min(
+            self.settings.deepseek_max_output_tokens, remaining - estimated_prompt_tokens
+        )
         if max_completion_tokens < 256:
             raise ModelServiceError(
                 "Task token budget is exhausted",

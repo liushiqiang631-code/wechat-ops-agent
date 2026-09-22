@@ -8,14 +8,14 @@ SKILL_META = {
     "title": "视觉策划",
     "description": "规划封面与配图，选择 AI 生图或网上找图，并给出可执行提示词。",
     "category": "pipeline",
-    "version": "2.0.0",
+    "version": "2.0.1",
     "builtin": True,
     "locked": True,
 }
 
 
 class VisualPlanningSkill:
-    version = "2.0.0"
+    version = "2.0.1"
 
     def __init__(self, model):
         self.model = model

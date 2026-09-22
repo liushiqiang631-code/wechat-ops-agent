@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import re
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from fastapi.testclient import TestClient
 
 from app.config.settings import Settings
 from app.container import build_container
+from app.domain.enums import TaskMode
+from app.domain.models import TaskRecord
 from app.main import create_app
 
 
@@ -42,7 +45,7 @@ def test_all_console_pages_share_shell_and_boundaries(tmp_path: Path):
 
     for path, page in pages.items():
         assert page.status_code == 200, path
-        assert "示例技术观察站" in page.text, path
+        assert "示例技术观察站" not in page.text, path
         assert 'class="app-shell"' in page.text, path
         assert 'class="side-nav"' in page.text, path
         assert 'id="task-drawer"' in page.text, path
@@ -98,6 +101,34 @@ def test_overview_page_matches_console_layout(tmp_path: Path):
     # 空数据不留假数字
     assert "12,560" not in page.text
     assert "+328" not in page.text
+
+
+def test_generated_articles_card_omits_day_over_day_change(tmp_path: Path):
+    settings = Settings(
+        _env_file=None,
+        database_url=f"sqlite:///{tmp_path / 'kpi.db'}",
+        object_storage_path=tmp_path / "outputs",
+    )
+    container = build_container(settings)
+    container.tasks.create(
+        TaskRecord(
+            mode=TaskMode.FIXED_TOPIC,
+            request="昨天创建的文章任务",
+            created_at=datetime.now(UTC) - timedelta(days=1),
+        )
+    )
+    client = TestClient(create_app(settings, container))
+
+    page = client.get("/")
+
+    generated_card = re.search(
+        r'<article class="kpi-card is-generated">(?P<card>.*?)</article>',
+        page.text,
+        re.DOTALL,
+    )
+    assert generated_card is not None
+    assert "较昨日" not in generated_card.group("card")
+    assert "-100.0%" not in generated_card.group("card")
 
 
 def test_data_page_keeps_empty_state_without_fabricated_numbers(tmp_path: Path):

@@ -42,7 +42,7 @@ async def test_probe_records_success_no_data_and_permission_without_faking(
     image = tmp_path / "probe.png"
     image.write_bytes(b"probe")
     probe = CapabilityProbe(
-        account_name="示例技术观察站",
+        account_name="测试账号",
         app_id="wx123456",
         token_manager=FakeToken(),
         analytics=FakeAnalytics(),
@@ -72,7 +72,7 @@ async def test_token_block_marks_dependent_checks_not_run(tmp_path: Path):
     image = tmp_path / "probe.png"
     image.write_bytes(b"probe")
     probe = CapabilityProbe(
-        account_name="示例技术观察站",
+        account_name="测试账号",
         app_id="wx123456",
         token_manager=BlockedToken(),
         analytics=FakeAnalytics(),

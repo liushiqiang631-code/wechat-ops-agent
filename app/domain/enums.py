@@ -51,6 +51,18 @@ class TaskStatus(StrEnum):
         return target in allowed[self]
 
 
+TASK_RUN_IN_FLIGHT_STATUSES = frozenset(
+    {
+        TaskStatus.DATA_SYNCED,
+        TaskStatus.PLANNED,
+        TaskStatus.RESEARCHED,
+        TaskStatus.WRITTEN,
+        TaskStatus.ASSETS_READY,
+        TaskStatus.REVIEWED,
+    }
+)
+
+
 class ProbeStatus(StrEnum):
     AVAILABLE = "available"
     BLOCKED = "blocked"

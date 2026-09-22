@@ -127,7 +127,7 @@ async def test_media_and_draft_requests_use_expected_endpoints(settings: Setting
         "token",
         {
             "title": "接口测试，请勿发布",
-            "author": "示例技术观察站",
+            "author": "测试账号",
             "digest": "V0 能力验证",
             "content": "<p>接口测试，请勿发布。</p>",
             "thumb_media_id": thumb,

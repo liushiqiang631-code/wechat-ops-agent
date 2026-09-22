@@ -11,6 +11,7 @@ from app.domain.enums import TaskMode, TaskStatus
 from app.domain.models import (
     AnalyticsReport,
     ArticleDocument,
+    ArticleQualityIssue,
     ArticleQualityReport,
     ArticleSection,
     AssetManifest,
@@ -443,6 +444,30 @@ class SequenceQuality:
         )
 
 
+class OverStructuredQuality:
+    def __init__(self):
+        self.calls = 0
+
+    def __call__(self, *args):
+        self.calls += 1
+        return ArticleQualityReport(
+            passed=self.calls > 1,
+            word_count=2_500,
+            minimum_word_count=2_000,
+            heading_count=10 if self.calls == 1 else 7,
+            issues=(
+                [
+                    ArticleQualityIssue(
+                        code="too_many_sections",
+                        message="文章最多保留 8 个有效二/三级章节，请合并重复内容",
+                    )
+                ]
+                if self.calls == 1
+                else []
+            ),
+        )
+
+
 def failing_quality(*args):
     return ArticleQualityReport(
         passed=False,
@@ -516,6 +541,31 @@ async def test_quality_repair_uses_a_supplement_instead_of_regenerating_the_arti
     assert result["status"] == TaskStatus.FORMATTED
     assert writing.run_calls == 1
     assert writing.supplement_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_quality_repair_rewrites_instead_of_appending_when_heading_count_is_too_high(
+    tmp_path: Path,
+):
+    repository, deps = dependencies(tmp_path, Reviews())
+    writing = SupplementingWriting()
+    deps = dataclasses.replace(
+        deps,
+        writing=writing,
+        editorial=Editorial(),
+        article_quality=OverStructuredQuality(),
+        asset_materializer=CountingMaterializer(),
+        max_review_rounds=1,
+    )
+    task = repository.create(
+        TaskSpec(mode=TaskMode.FIXED_TOPIC, request="写 LangGraph 检查点", topic="LangGraph 检查点")
+    )
+
+    result = await run_content_task(task.id, deps)
+
+    assert result["status"] == TaskStatus.FORMATTED
+    assert writing.run_calls == 2
+    assert writing.supplement_calls == 0
 
 
 @pytest.mark.asyncio

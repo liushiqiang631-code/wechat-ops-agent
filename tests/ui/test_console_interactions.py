@@ -35,6 +35,15 @@ def test_console_script_has_accessible_drawers_and_real_actions(tmp_path: Path):
     assert "window.alert" not in script.text
 
 
+def test_preview_dialog_exposes_a_collapsed_maximize_control(tmp_path: Path):
+    page = build_client(tmp_path).get("/tasks")
+
+    assert page.status_code == 200
+    assert 'data-toggle-preview-size' in page.text
+    assert 'aria-label="放大预览"' in page.text
+    assert 'aria-pressed="false"' in page.text
+
+
 def test_console_script_wires_overview_widgets(tmp_path: Path):
     script = build_client(tmp_path).get("/static/app.js")
 
@@ -134,3 +143,21 @@ def test_tasks_page_shows_delete_for_local_task_and_wechat_draft(tmp_path: Path)
     assert page.status_code == 200
     assert f'data-task-delete data-task-id="{local_task["id"]}"' in page.text
     assert f'data-task-delete data-task-id="{draft_task["id"]}"' in page.text
+
+
+def test_tasks_page_hides_delete_while_task_is_running(tmp_path: Path):
+    client = build_client(tmp_path)
+    task = client.post(
+        "/api/v1/tasks",
+        json={
+            "mode": "fixed_topic",
+            "request": "正在运行的内容任务",
+            "topic": "正在运行的内容任务",
+        },
+    ).json()
+    client.app.state.container.tasks.transition(task["id"], TaskStatus.PLANNED)
+
+    page = client.get("/tasks")
+
+    assert page.status_code == 200
+    assert f'data-task-delete data-task-id="{task["id"]}"' not in page.text

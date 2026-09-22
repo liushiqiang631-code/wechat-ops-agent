@@ -31,6 +31,18 @@ DEFAULT_OFFICIAL_SOURCES = [
     "https://github.com/openai/openai-agents-python",
 ]
 
+ADDITIVE_QUALITY_ISSUES = {
+    "article_too_short",
+    "too_few_sections",
+    "missing_evidence_bindings",
+    "blueprint_evidence_not_used",
+    "missing_mechanism_section",
+    "missing_practice_section",
+    "missing_boundary_section",
+    "missing_action_section",
+    "missing_verified_code",
+}
+
 
 @dataclass(slots=True)
 class WorkflowDependencies:
@@ -124,6 +136,14 @@ def _review_can_format(report: object) -> bool:
         or getattr(issue, "code", "") == "source_gap"
         for issue in getattr(report, "issues", [])
     )
+
+
+def _quality_can_supplement(report: object) -> bool:
+    """Return whether appending sections can resolve every reported quality gap."""
+    if getattr(report, "heading_count", 0) > 8:
+        return False
+    issues = getattr(report, "issues", [])
+    return all(getattr(issue, "code", "") in ADDITIVE_QUALITY_ISSUES for issue in issues)
 
 
 def _tracked(
@@ -350,7 +370,12 @@ def build_content_graph(deps: WorkflowDependencies, recorder: StepRecorder | Non
             )
         if "editorial_blueprint" in state:
             quality = state.get("article_quality")
-            if quality is not None and not quality.passed and hasattr(deps.writing, "supplement"):
+            if (
+                quality is not None
+                and not quality.passed
+                and _quality_can_supplement(quality)
+                and hasattr(deps.writing, "supplement")
+            ):
                 article = await deps.writing.supplement(
                     updated,
                     state["research"],
@@ -588,15 +613,21 @@ async def run_content_task(
             }
             config = {"configurable": {"thread_id": task_id}}
             if deps.checkpoint_path is not None:
+                import aiosqlite
                 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
                 deps.checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
-                async with AsyncSqliteSaver.from_conn_string(
-                    str(deps.checkpoint_path)
-                ) as saver:
+                conn = await aiosqlite.connect(str(deps.checkpoint_path))
+                # 与内存检查点保持一致：状态里的领域对象（如 ResearchPack）
+                # 需要 pickle 兜底，默认序列化器会直接失败。
+                saver = AsyncSqliteSaver(conn, serde=JsonPlusSerializer(pickle_fallback=True))
+                try:
+                    await saver.setup()
                     runtime_deps = dataclasses.replace(deps, checkpointer=saver)
                     graph = build_content_graph(runtime_deps, recorder)
                     result = await graph.ainvoke(initial_state, config=config)
+                finally:
+                    await conn.close()
             else:
                 graph = build_content_graph(deps, recorder)
                 result = await graph.ainvoke(initial_state, config=config)

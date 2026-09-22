@@ -16,14 +16,14 @@ SKILL_META = {
     "title": "文章写作",
     "description": "按任务约束与研究材料生成结构化文章，可叠加启用中的写作风格 Skill。",
     "category": "pipeline",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "builtin": True,
     "locked": True,
 }
 
 
 class WritingSkill:
-    version = "1.2.0"
+    version = "1.2.1"
 
     def __init__(self, model, registry=None):
         self.model = model

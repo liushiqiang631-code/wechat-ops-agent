@@ -5,13 +5,13 @@ import re
 from pathlib import Path
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Response, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from app.api.dependencies import get_container
 from app.container import ApplicationContainer
-from app.domain.enums import EvidenceType, TaskStatus
+from app.domain.enums import TASK_RUN_IN_FLIGHT_STATUSES, EvidenceType, TaskStatus
 from app.domain.models import (
     AssetManifest,
     GenUiDocument,
@@ -74,21 +74,32 @@ def get_task(
 @router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_task(
     task_id: str,
+    background_tasks: BackgroundTasks,
     container: ApplicationContainer = Depends(get_container),
 ) -> Response:
     try:
         task = container.tasks.get(task_id)
-    except KeyError as exc:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "任务不存在") from exc
+    except KeyError:
+        # DELETE is idempotent: a repeated click or a stale browser page has
+        # already reached the requested end state.
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    if task.status in TASK_RUN_IN_FLIGHT_STATUSES:
+        raise HTTPException(status.HTTP_409_CONFLICT, "运行中的任务不可删除，请等待任务结束")
     protected_statuses = {
         TaskStatus.PUBLISHED,
         TaskStatus.POST_ANALYZED,
     }
     if task.status in protected_statuses:
         raise HTTPException(status.HTTP_409_CONFLICT, "已推送或发布的任务不可删除")
-    container.artifacts.delete_task(task_id)
     container.topic_records.delete(task_id)
-    container.tasks.delete(task_id)
+    try:
+        container.tasks.delete(task_id)
+    except KeyError:
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    # Large generated-asset directories can take seconds to remove on Windows.
+    # The task is already gone from the database, so clean files after the
+    # response instead of leaving the button stuck on “删除中…”.
+    background_tasks.add_task(container.artifacts.delete_task, task_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

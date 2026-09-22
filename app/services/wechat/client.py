@@ -50,6 +50,8 @@ class WeChatClient:
         client = self._client or httpx.AsyncClient(
             base_url=self.settings.wechat_api_base,
             timeout=httpx.Timeout(timeout, connect=10.0),
+            # 微信按出口 IP 校验白名单；固定直连避免系统代理导致 IP 漂移
+            trust_env=False,
         )
         try:
             response = await client.request(

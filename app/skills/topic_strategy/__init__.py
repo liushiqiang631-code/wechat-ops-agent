@@ -8,14 +8,14 @@ SKILL_META = {
     "title": "选题策略",
     "description": "结合账号定位与数据表现，评分候选选题并给出理由。",
     "category": "pipeline",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "builtin": True,
     "locked": True,
 }
 
 
 class TopicStrategySkill:
-    version = "1.0.0"
+    version = "1.0.1"
 
     def __init__(self, model):
         self.model = model

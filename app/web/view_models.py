@@ -6,12 +6,12 @@ from pathlib import Path
 from typing import Any
 
 from app.container import ApplicationContainer
-from app.domain.enums import TaskMode, TaskStatus
+from app.domain.enums import TASK_RUN_IN_FLIGHT_STATUSES, TaskMode, TaskStatus
 from app.domain.models import ArticleDocument, AssetManifest, MetricRecord, TaskRecord
 from app.services.analytics.metrics import calculate_windows
 from app.services.analytics.quality import build_quality_report
 from app.services.formatting.assets import resolve_asset_urls
-from app.services.formatting.renderer import article_to_markdown
+from app.services.formatting.renderer import article_to_markdown, render_wechat_html
 
 PIPELINE_STAGES = ("需求", "数据/选题", "研究", "写作", "视觉", "审核", "排版", "草稿")
 CAPABILITY_WARNING_TTL = timedelta(hours=1)
@@ -20,14 +20,7 @@ WEEKDAY_LABELS = ("周一", "周二", "周三", "周四", "周五", "周六", "�
 
 # Statuses that mean a pipeline run is (probably) in flight; the console polls
 # the live step timeline for these tasks.
-RUNNING_STATUSES = {
-    TaskStatus.DATA_SYNCED,
-    TaskStatus.PLANNED,
-    TaskStatus.RESEARCHED,
-    TaskStatus.WRITTEN,
-    TaskStatus.ASSETS_READY,
-    TaskStatus.REVIEWED,
-}
+RUNNING_STATUSES = TASK_RUN_IN_FLIGHT_STATUSES
 
 WRITTEN_PLUS_STATUSES = {
     TaskStatus.WRITTEN,
@@ -406,8 +399,7 @@ def workflow_view(container: ApplicationContainer, *, reference: datetime) -> di
             "title": "已成功保存到微信草稿箱",
             "body": (
                 f"文章《{latest.title_hint or latest.topic or latest.request}》已保存到"
-                f"「{container.settings.wechat_account_name}」的草稿箱，"
-                "正式发布请在微信后台完成。"
+                "微信草稿箱，正式发布请在微信后台完成。"
             ),
         }
     elif status == TaskStatus.FAILED:
@@ -886,7 +878,6 @@ def _base_context(container: ApplicationContainer, *, reference: datetime) -> di
             container.settings.wechat_app_id and container.settings.wechat_app_secret
         ),
         "draft_enabled": container.settings.wechat_draft_enabled,
-        "operator_name": container.settings.operator_name,
         "greeting": _greeting(reference),
         "local_time": reference.strftime("%Y-%m-%d %H:%M"),
         "asset_version": _asset_version(),
@@ -1079,14 +1070,17 @@ def build_review_context(
         return context
     try:
         article_payload = container.artifacts.read_json(task_id, "article")
-        try:
-            html_payload = container.artifacts.read_json(task_id, "final_wechat_html")
-        except FileNotFoundError:
-            html_payload = container.artifacts.read_json(task_id, "wechat_html")
     except FileNotFoundError:
         context["review"] = {"ok": False, "reason": "任务尚未产出文章，请先运行任务"}
         return context
     article = ArticleDocument.model_validate(article_payload)
+    try:
+        html_payload = container.artifacts.read_json(task_id, "final_wechat_html")
+    except FileNotFoundError:
+        try:
+            html_payload = container.artifacts.read_json(task_id, "wechat_html")
+        except FileNotFoundError:
+            html_payload = {"html": render_wechat_html(article)}
     generated_markdown = article_to_markdown(article)
     final_markdown = generated_markdown
     try:
@@ -1307,6 +1301,10 @@ def build_settings_context(
             "configured": bool(settings.wechat_app_id and settings.wechat_app_secret),
             "draft_enabled": settings.wechat_draft_enabled,
             "auto_publish": False,
+            # 表单回显只含非敏感字段；AppSecret 只返回是否存在，永不回显。
+            "app_id": settings.wechat_app_id or "",
+            "original_id": settings.wechat_original_id or "",
+            "has_secret": settings.wechat_app_secret is not None,
         },
         "images": {
             "ai_generation": settings.ai_image_generation_available,

@@ -83,7 +83,7 @@ def test_quality_gate_rejects_shallow_article() -> None:
     assert report.passed is False
     assert {issue.code for issue in report.issues} >= {
         "article_too_short",
-        "insufficient_sections",
+        "too_few_sections",
         "missing_verified_code",
         "missing_action_section",
         "missing_evidence_bindings",
@@ -176,3 +176,32 @@ def test_quality_gate_rejects_unknown_claim_reference() -> None:
 
     assert report.passed is False
     assert report.invalid_claim_refs == ["invented-hash"]
+
+
+def test_quality_gate_reports_too_many_headings_as_a_reduction_problem() -> None:
+    article = ArticleDocument(
+        titles=["章节过多"],
+        selected_title="章节过多",
+        digest="检查结构。",
+        audience="开发者",
+        sections=[
+            *[
+                ArticleSection(type="heading", level=2, content=f"章节 {index}")
+                for index in range(9)
+            ],
+            ArticleSection(type="paragraph", content="正文。" * 1_000),
+        ],
+        references=["https://docs.example.com/persistence"],
+        ending="合并重复章节。",
+    )
+
+    report = evaluate_article(
+        article,
+        _research(),
+        TaskConstraints(target_words=1800),
+        _blueprint(),
+    )
+
+    issue_codes = {issue.code for issue in report.issues}
+    assert "too_many_sections" in issue_codes
+    assert "too_few_sections" not in issue_codes

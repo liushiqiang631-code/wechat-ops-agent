@@ -74,6 +74,40 @@ def test_task_delete_removes_local_task_topic_record_and_artifacts(tmp_path: Pat
         client.app.state.container.topic_records.get(task["id"])
 
 
+def test_task_delete_is_idempotent_when_task_is_already_missing(tmp_path: Path):
+    client = api_client(tmp_path)
+
+    first = client.delete("/api/v1/tasks/already-deleted-task")
+    second = client.delete("/api/v1/tasks/already-deleted-task")
+
+    assert first.status_code == 204
+    assert second.status_code == 204
+
+
+def test_task_delete_rejects_running_task_and_preserves_local_data(tmp_path: Path):
+    client = api_client(tmp_path)
+    task = client.post(
+        "/api/v1/tasks",
+        json={
+            "mode": "fixed_topic",
+            "request": "运行中的任务不可删除",
+            "topic": "运行中的任务不可删除",
+        },
+    ).json()
+    task_id = task["id"]
+    client.app.state.container.tasks.transition(task_id, TaskStatus.PLANNED)
+    artifact_dir = tmp_path / "outputs" / task_id
+    artifact_dir.mkdir(parents=True)
+    (artifact_dir / "plan.latest.json").write_text("{}", encoding="utf-8")
+
+    response = client.delete(f"/api/v1/tasks/{task_id}")
+
+    assert response.status_code == 409
+    assert "运行中的任务不可删除" in response.json()["detail"]
+    assert client.get(f"/api/v1/tasks/{task_id}").status_code == 200
+    assert artifact_dir.exists()
+
+
 def test_task_delete_removes_local_record_for_wechat_draft_without_calling_wechat(tmp_path: Path):
     client = api_client(tmp_path)
     task = client.post(
