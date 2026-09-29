@@ -25,7 +25,8 @@ def check_html_sentinels(article: ArticleDocument, html: str) -> HtmlSentinelRep
             if any(section.type == "table" for section in article.sections)
             else True
         ),
-        "references": all(escape(str(reference)) in html for reference in article.references),
+        # 来源只用于取材与追溯，不进入成稿：HTML 里不应出现参考资料列表。
+        "no_references": "参考资料" not in html,
         "no_script": "<script" not in html.lower(),
     }
     missing = [name for name, passed in checks.items() if not passed]

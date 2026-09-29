@@ -45,7 +45,9 @@ def test_formatter_outputs_safe_wechat_html_with_complete_sentinels():
     assert "&lt;script&gt;" in html
     assert "style=" in html
     assert "MCP、Tools 与 Skills 的边界" in html
-    assert "https://modelcontextprotocol.io/docs" in html
+    # 来源只用于取材与追溯，不进入成稿：文末不渲染参考资料列表。
+    assert "参考资料" not in html
+    assert "https://modelcontextprotocol.io/docs" not in html
     assert sentinels.passed is True
     assert all(sentinels.checks.values())
 

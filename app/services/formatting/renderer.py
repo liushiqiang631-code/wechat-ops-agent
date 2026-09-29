@@ -51,10 +51,6 @@ CSS = {
         "margin:20px 0;padding:4px 0 4px 16px;border-left:3px solid #94a3b8;"
         "color:#475569;font-style:italic;"
     ),
-    "refs": (
-        "margin-top:36px;padding-top:16px;border-top:1px solid #cbd5e1;"
-        "color:#475569;font-size:13px;"
-    ),
 }
 
 
@@ -145,8 +141,6 @@ def article_to_markdown(article: ArticleDocument) -> str:
                 parts.append(f"{{{{ARTICLE_ASSET:{section.asset_id}}}}}")
         parts.append("")
     parts.extend(["", f"**结尾：**{article.ending}"])
-    if article.references:
-        parts.extend(["", "**参考资料：**", *[f"- {url}" for url in article.references]])
     return "\n".join(parts).strip() + "\n"
 
 
@@ -256,17 +250,12 @@ def render_wechat_html(article: ArticleDocument, supplemental_html: str = "") ->
         elif (section.content or "").strip() != article.selected_title.strip():
             normalized_sections.append(section.model_copy(update={"level": 2}))
     sections = "".join(_render_section(section) for section in normalized_sections)
-    references = "".join(
-        f'<li style="{CSS["li"]}"><a href="{escape(str(url))}">{escape(str(url))}</a></li>'
-        for url in article.references
-    )
     body = (
         f'<section style="{CSS["article"]}">'
         f'<h1 style="{CSS["h1"]}">{escape(article.selected_title)}</h1>'
         f"{sections}"
         f'<p style="{CSS["p"]}">{escape(article.ending)}</p>'
         f"{supplemental_html}"
-        f'<section style="{CSS["refs"]}"><strong>参考资料</strong><ol>{references}</ol></section>'
         "</section>"
     )
     return bleach.clean(

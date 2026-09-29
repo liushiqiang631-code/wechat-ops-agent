@@ -34,8 +34,9 @@ def test_article_to_markdown_renders_all_section_types():
     assert "- 可恢复" in markdown
     assert "| 方案 | 成本 |" in markdown
     assert "| --- | --- |" in markdown
-    assert "**参考资料：**" in markdown
-    assert "https://docs.langchain.com" in markdown
+    # 来源只用于取材与追溯，不进入成稿：文末不渲染参考资料列表。
+    assert "参考资料" not in markdown
+    assert "https://docs.langchain.com" not in markdown
 
 
 def test_article_to_markdown_roundtrips_to_editable_text():
