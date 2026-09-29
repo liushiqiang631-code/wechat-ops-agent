@@ -62,4 +62,18 @@ def test_enabled_writing_styles_are_listed_for_the_writer(tmp_path: Path):
 
     styles = registry.enabled_skills(category="writing_style")
 
-    assert [style.name for style in styles] == ["human_writing"]
+    # alphabetical by module name: account_style < human_writing
+    assert [style.name for style in styles] == ["account_style", "human_writing"]
+
+
+def test_account_style_is_installed_and_enabled_by_default(tmp_path: Path):
+    registry = build_registry(tmp_path)
+
+    account_style = registry.get("account_style")
+
+    assert account_style is not None
+    assert account_style.enabled is True
+    assert account_style.builtin is False
+    assert account_style.locked is False
+    assert account_style.category == "writing_style"
+    assert account_style.version == "1.0.0"
