@@ -158,6 +158,41 @@ def test_needs_human_article_without_formatted_html_is_still_reviewable(tmp_path
     assert 'id="review-markdown"' in review_page.text
 
 
+def test_needs_human_task_preview_renders_article_without_html_artifact(tmp_path: Path):
+    client, container = build_client(tmp_path)
+    task = container.tasks.create(
+        TaskSpec(
+            mode=TaskMode.FIXED_TOPIC,
+            request="写 LangGraph 检查点",
+            topic="LangGraph 检查点",
+        )
+    )
+
+    # 没有任何产物时，预览保持明确的 404。
+    missing = client.get(f"/api/v1/tasks/{task.id}/preview")
+    assert missing.status_code == 404
+
+    # 卡在人工环节：文章存在但没有排版 HTML，预览用文章数据现场渲染。
+    container.artifacts.write_json(task.id, "article", _article_payload())
+    advance(
+        container,
+        task.id,
+        TaskStatus.PLANNED,
+        TaskStatus.RESEARCHED,
+        TaskStatus.WRITTEN,
+        TaskStatus.NEEDS_HUMAN,
+    )
+
+    preview = client.get(f"/api/v1/tasks/{task.id}/preview")
+
+    assert preview.status_code == 200
+    html = preview.json()["html"]
+    assert "LangGraph 检查点" in html
+    assert "先看进程中断。" in html
+    # 来源不进入成稿（与排版器契约一致）。
+    assert "参考资料" not in html
+
+
 def test_mark_published_backfills_topic_performance_and_shows_on_data(tmp_path: Path):
     client, container = build_client(tmp_path)
 

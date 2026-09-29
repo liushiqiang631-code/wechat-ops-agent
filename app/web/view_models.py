@@ -77,7 +77,9 @@ STATUS_PRESENTATION: dict[TaskStatus, tuple[str, int, str | None, str]] = {
     TaskStatus.REVIEWED: ("审核完成", 5, None, "running"),
     TaskStatus.FORMATTED: ("等待人工审阅", 6, "preview", "success"),
     TaskStatus.WECHAT_DRAFTED: ("已写入微信草稿", 7, "preview", "success"),
-    TaskStatus.NEEDS_HUMAN: ("需要人工处理", 5, "review", "warning"),
+    # 待人工处理的任务文章已存在：允许查看产物（现场渲染），并保留审阅入口。
+    # 文案与样式和 FORMATTED 完全一致，统一呈现为绿色“等待人工审阅”。
+    TaskStatus.NEEDS_HUMAN: ("等待人工审阅", 5, "preview", "success"),
     TaskStatus.FAILED: ("运行失败", 0, "retry", "error"),
     TaskStatus.HUMAN_REVIEWED: ("人工审核完成", 6, "preview", "success"),
     TaskStatus.PUBLISHED: ("已人工发布", 7, None, "success"),
@@ -411,7 +413,7 @@ def workflow_view(container: ApplicationContainer, *, reference: datetime) -> di
     elif status == TaskStatus.NEEDS_HUMAN:
         notice = {
             "tone": "warning",
-            "title": "需要人工处理",
+            "title": "等待人工审阅",
             "body": "自动修订已达两轮上限，请进入审阅页完成终稿。",
         }
     elif status == TaskStatus.FORMATTED:

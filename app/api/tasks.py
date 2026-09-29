@@ -13,6 +13,7 @@ from app.api.dependencies import get_container
 from app.container import ApplicationContainer
 from app.domain.enums import TASK_RUN_IN_FLIGHT_STATUSES, EvidenceType, TaskStatus
 from app.domain.models import (
+    ArticleDocument,
     AssetManifest,
     GenUiDocument,
     StepRunReport,
@@ -22,6 +23,7 @@ from app.domain.models import (
 )
 from app.services.analytics.topic_feedback import sync_topic_record
 from app.services.formatting.assets import resolve_asset_urls
+from app.services.formatting.renderer import render_wechat_html
 from app.services.genui.validator import validate_genui
 from app.services.wechat.client import WeChatAPIError
 from app.workflows.graph import run_content_task
@@ -166,8 +168,16 @@ def preview_task(
             payload = container.artifacts.read_json(task_id, "final_wechat_html")
         except FileNotFoundError:
             payload = container.artifacts.read_json(task_id, "wechat_html")
-    except FileNotFoundError as exc:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "任务尚无 HTML 预览") from exc
+    except FileNotFoundError:
+        # 卡在人工环节的任务文章已存在但没有排版产物：用文章数据现场渲染，
+        # 不重新调用模型、不推进任何状态。
+        try:
+            article = ArticleDocument.model_validate(
+                container.artifacts.read_json(task_id, "article")
+            )
+        except FileNotFoundError as exc:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "任务尚无 HTML 预览") from exc
+        payload = {"html": render_wechat_html(article)}
     html = str(payload.get("html", ""))
     manifest = _read_manifest(container, task_id)
     payload["html"] = resolve_asset_urls(html, task_id, manifest)
