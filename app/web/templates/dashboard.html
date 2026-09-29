@@ -224,7 +224,10 @@
           {% for asset in covers.recent_assets %}
           <figure class="asset-thumb">
             <img src="{{ asset.url }}" alt="任务配图：{{ asset.caption }}" loading="lazy">
-            <figcaption>{{ asset.caption | truncate(20) }}</figcaption>
+            <figcaption>
+              <span class="asset-caption">{{ asset.caption | truncate(20) }}</span>
+              <time class="asset-time" datetime="{{ asset.created_iso }}">{{ asset.created_label }} 生成</time>
+            </figcaption>
           </figure>
           {% endfor %}
         </div>

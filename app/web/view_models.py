@@ -505,10 +505,16 @@ def cover_gallery(container: ApplicationContainer) -> dict[str, object]:
                     "caption": item.caption or item.query_or_prompt or item.kind,
                     "provider": item.provider or item.source or "deterministic",
                     "url": f"/api/v1/tasks/{task.id}/assets/{item.asset_id}",
+                    "created_at": item.created_at,
+                    "created_iso": item.created_at.isoformat(timespec="minutes"),
+                    "created_label": item.created_at.strftime("%m-%d %H:%M"),
                 }
             )
-        if len(recent_assets) >= 6:
+        if len(recent_assets) >= 12:
             break
+    recent_assets.sort(key=lambda asset: asset["created_at"], reverse=True)
+    for asset in recent_assets:
+        asset.pop("created_at")
     return {
         "styles": [
             {"key": "mountain", "title": "用 AI 点亮高效生活", "subtitle": "让效率，成为一种习惯"},
@@ -944,16 +950,19 @@ def build_tasks_context(
 def build_topics_context(
     container: ApplicationContainer, *, now: datetime | None = None
 ) -> dict[str, Any]:
-    """选题中心：已发布选题表现 + 选题信号说明。"""
+    """选题中心：全部已登记选题（含未发布）+ 已发布选题的表现回填。"""
     reference = now or datetime.now(container.settings.timezone)
     context = _base_context(container, reference=reference)
-    topics = container.topic_records.list_published()
+    topics = container.topic_records.list_all()
     measured = [record for record in topics if record.measured_at is not None]
     context["topics"] = {
         "rows": [
             {
                 "topic": record.topic,
                 "mode": record.mode.value,
+                "created_at": (
+                    record.created_at.strftime("%Y-%m-%d") if record.created_at else "—"
+                ),
                 "published_at": (
                     record.published_at.strftime("%Y-%m-%d") if record.published_at else "—"
                 ),

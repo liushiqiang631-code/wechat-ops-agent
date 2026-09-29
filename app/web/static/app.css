@@ -1259,9 +1259,18 @@ select:focus {
 }
 
 .asset-thumb figcaption {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   padding: 6px 8px;
   font-size: 11px;
   color: var(--muted);
+}
+
+.asset-thumb .asset-time {
+  font-size: 10px;
+  color: var(--ink-3, var(--muted));
+  opacity: 0.85;
 }
 
 .config-list {

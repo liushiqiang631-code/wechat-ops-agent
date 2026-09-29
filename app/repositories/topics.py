@@ -80,3 +80,14 @@ class TopicRecordRepository:
                 .all()
             )
             return [self._to_model(row) for row in rows]
+
+    def list_all(self, limit: int = 100) -> list[TopicRecord]:
+        """Every registered topic (published or not), newest task first."""
+        with self.sessions() as session:
+            rows = (
+                session.query(TopicRecordRow)
+                .order_by(TopicRecordRow.created_at.desc())
+                .limit(limit)
+                .all()
+            )
+            return [self._to_model(row) for row in rows]

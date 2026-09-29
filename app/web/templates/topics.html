@@ -49,6 +49,7 @@
           <tr>
             <th>选题</th>
             <th>模式</th>
+            <th>登记时间</th>
             <th>发布日期</th>
             <th>阅读</th>
             <th>分享</th>
@@ -62,6 +63,7 @@
           <tr>
             <td>{{ row.topic }}</td>
             <td>{{ "指定主题" if row.mode == "fixed_topic" else "数据驱动" if row.mode == "data_driven_article" else "周计划" }}</td>
+            <td>{{ row.created_at }}</td>
             <td>{{ row.published_at }}</td>
             <td>{{ "{:,}".format(row.reads) if row.reads is not none else "—" }}</td>
             <td>{{ row.shares if row.shares is not none else "—" }}</td>
@@ -79,7 +81,7 @@
   <div class="task-empty panel">
     <div class="task-empty-mark" aria-hidden="true">◎</div>
     <h3>还没有选题记录</h3>
-    <p>运行「数据驱动文章」或「周度运营计划」任务后，系统会自动登记选题并跟踪效果；
+    <p>创建任意内容任务（指定主题、数据驱动文章或周度运营计划）后，系统都会自动登记选题并跟踪效果；
       也可以先导入运营数据，让选题评分有历史依据。</p>
     <div class="heading-actions">
       <button class="button button-secondary" type="button" data-open-drawer="import-drawer">导入运营数据</button>

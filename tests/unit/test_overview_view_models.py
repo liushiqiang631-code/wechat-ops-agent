@@ -6,9 +6,11 @@ from pathlib import Path
 from app.config.settings import Settings
 from app.container import build_container
 from app.domain.enums import TaskMode, TaskStatus
-from app.domain.models import MetricRecord, TaskRecord
+from app.domain.models import AssetManifest, AssetRecord, MetricRecord, TaskRecord
+from app.services.analytics.topic_feedback import sync_topic_record
 from app.web.view_models import (
     build_dashboard_context,
+    build_topics_context,
     calendar_month_grid,
     cover_gallery,
     daily_series,
@@ -248,3 +250,59 @@ def test_cover_gallery_lists_style_placeholders(tmp_path: Path):
 
     assert [style["key"] for style in covers["styles"]] == ["mountain", "desk", "coffee"]
     assert covers["recent_assets"] == []
+
+
+def test_cover_gallery_shows_generation_time_newest_first(tmp_path: Path):
+    container = build_container_for(tmp_path)
+    task = container.tasks.create(
+        TaskRecord(
+            mode=TaskMode.FIXED_TOPIC,
+            request="写一篇关于恢复机制的文章",
+            created_at=NOW,
+        )
+    )
+    older = AssetRecord(
+        asset_id="cover1",
+        kind="cover",
+        caption="旧封面",
+        created_at=NOW - timedelta(days=1),
+    )
+    newer = AssetRecord(asset_id="cover2", kind="concept", caption="新配图", created_at=NOW)
+    container.artifacts.write_json(
+        task.id,
+        "assets",
+        AssetManifest(task_id=task.id, items=[older, newer]).model_dump(mode="json"),
+    )
+
+    covers = cover_gallery(container)
+
+    assets = covers["recent_assets"]
+    assert [asset["asset_id"] for asset in assets] == ["cover2", "cover1"]
+    assert assets[0]["created_label"].startswith("07-18")
+    assert assets[1]["created_label"].startswith("07-17")
+    assert "T12:00" in assets[0]["created_iso"]
+
+
+def test_topics_context_lists_every_task_topic_even_unpublished(tmp_path: Path):
+    container = build_container_for(tmp_path)
+    created = container.tasks.create(
+        TaskRecord(
+            mode=TaskMode.FIXED_TOPIC,
+            request="写一篇关于恢复机制的文章",
+            created_at=NOW,
+        )
+    )
+    sync_topic_record(container, created)
+
+    context = build_topics_context(container, now=NOW)
+
+    topics = context["topics"]
+    assert topics["has_data"] is True
+    assert topics["total"] == 1
+    assert topics["measured"] == 0
+    row = topics["rows"][0]
+    assert row["topic"] == "写一篇关于恢复机制的文章"
+    assert row["mode"] == "fixed_topic"
+    assert row["created_at"] == "2026-07-18"
+    assert row["published_at"] == "—"
+    assert row["measured"] is False
