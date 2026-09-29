@@ -69,6 +69,10 @@ class AssetMaterializer:
             return max(0.0, self.settings.dashscope_inter_request_delay)
         return 0.0
 
+    # 封面取 2:1 适配公众号头图裁切，内文配图 16:9，避免正方形大图撑版面
+    KIND_IMAGE_SIZES = {"cover": "1024x512"}
+    DEFAULT_IMAGE_SIZE = "1024x576"
+
     # -- public ------------------------------------------------------------
 
     async def materialize(
@@ -112,7 +116,10 @@ class AssetMaterializer:
     async def _generate(self, task_id: str, asset_id: str, item) -> AssetRecord:
         provider = getattr(self.ai_generator, "provider_name", "ai_generated")
         try:
-            generated = await self.ai_generator.generate(item.prompt_or_source)
+            generated = await self.ai_generator.generate(
+                item.prompt_or_source,
+                image_size=self.KIND_IMAGE_SIZES.get(item.kind, self.DEFAULT_IMAGE_SIZE),
+            )
             if generated.image_bytes:
                 record = await self._save_bytes(task_id, asset_id, item, generated, provider)
             else:

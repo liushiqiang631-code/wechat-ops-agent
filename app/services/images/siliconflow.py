@@ -30,10 +30,11 @@ class GeneratedImage:
 class SiliconFlowImageClient:
     """Text-to-image client for SiliconFlow (OpenAI-compatible image API).
 
-    The configured model id (default ``qwen-image-3.0-pro``) is probed against
-    the live ``/models`` endpoint. When the exact id is unavailable, the client
-    falls back to the best available Qwen image model (``Qwen/Qwen-Image``) and
-    reports the fallback in the result so evidence stays honest.
+    The configured model id (default ``Tongyi-MAI/Z-Image-Turbo``) is probed
+    against the live ``/models`` endpoint. When the exact id is unavailable,
+    the client falls back to the best available Qwen image model
+    (``Qwen/Qwen-Image``) and reports the fallback in the result so evidence
+    stays honest.
     """
 
     provider_name = "siliconflow"

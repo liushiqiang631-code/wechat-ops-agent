@@ -90,6 +90,8 @@ class DashScopeImageClient:
         return response
 
     async def generate(self, prompt: str, *, image_size: str | None = None) -> GeneratedImage:
+        # 素材化器统一用 "宽x高" 约定；百炼接口的分隔符是 "*"
+        size = (image_size or self.settings.dashscope_image_size).replace("x", "*")
         payload = {
             "model": self.settings.dashscope_image_model,
             "input": {
@@ -98,7 +100,7 @@ class DashScopeImageClient:
             "parameters": {
                 "prompt_extend": True,
                 "n": 1,
-                "size": image_size or self.settings.dashscope_image_size,
+                "size": size,
             },
         }
         response = await self._request(

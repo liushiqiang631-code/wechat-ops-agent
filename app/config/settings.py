@@ -50,7 +50,9 @@ class Settings(BaseSettings):
     image_search_provider: Literal["wikimedia", "disabled"] = "wikimedia"
     siliconflow_api_base: str = "https://api.siliconflow.cn/v1"
     siliconflow_api_key: SecretStr | None = None
-    siliconflow_image_model: str = "Qwen/Qwen-Image-3.0-Pro"
+    # 线上文生图可用模型以 GET /models 为准；Z-Image-Turbo 约 ¥0.10/张，
+    # Qwen/Qwen-Image 约 ¥0.25/张（擅长图内中文文字），Kwai-Kolors/Kolors 免费
+    siliconflow_image_model: str = "Tongyi-MAI/Z-Image-Turbo"
 
     dashscope_api_base: str = "https://dashscope.aliyuncs.com/api/v1"
     dashscope_api_key: SecretStr | None = None
