@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from html import escape
+from html import escape, unescape
 
 import bleach
 import markdown as markdown_lib
@@ -64,12 +64,52 @@ def _highlight_code(language: str | None, content: str | None) -> str:
         return escape(content or "")
 
 
+def render_inline_text(text: str | None) -> str:
+    """Render model-supplied Markdown emphasis without accepting raw HTML or images."""
+    rendered = markdown_lib.markdown(escape(text or ""))
+    return bleach.clean(
+        rendered, tags={"strong", "em", "code", "a", "br"},
+        attributes={"a": ["href"]}, protocols={"http", "https", "mailto"}, strip=True,
+    ).strip()
+
+
+def heading_text(text: str | None) -> str:
+    return re.sub(r"^\s*#{1,6}\s+", "", text or "").strip()
+
+
+def _render_style_marker(text: str | None) -> str | None:
+    palettes = {
+        "orange": ("#fff0df", "#a65300"), "green": ("#e7f4eb", "#276749"),
+        "purple": ("#f0eafa", "#6b46a0"), "blue": ("#e8f1fc", "#245b9e"),
+        "red": ("#fce8e8", "#b83232"),
+    }
+    marker = re.fullmatch(
+        r"%pill\s+([^\n]+?)\s+(orange|green|purple|blue|red)", (text or "").strip()
+    )
+    if marker:
+        background, color = palettes[marker[2]]
+        return (
+            '<section style="margin:16px 0 12px;">'
+            f'<p style="display:inline-block;margin:0;padding:4px 12px;border-radius:18px;'
+            f'background:{background};color:{color};font-size:13px;font-weight:700;">'
+            f'{render_inline_text(marker[1])}</p></section>'
+        )
+    formula = re.fullmatch(r"%formula\s+([^\n]+)", (text or "").strip())
+    if formula:
+        return f'<section style="{CSS["callout"]}">{render_inline_text(formula[1])}</section>'
+    return None
+
+
 def _render_section(section: ArticleSection) -> str:
     if section.type == "paragraph":
-        return f'<p style="{CSS["p"]}">{escape(section.content or "")}</p>'
+        styled = _render_style_marker(section.content)
+        if styled is not None:
+            return styled
+        return f'<p style="{CSS["p"]}">{render_inline_text(section.content)}</p>'
     if section.type == "heading":
         tag = f"h{section.level}"
-        return f'<{tag} style="{CSS[tag]}">{escape(section.content or "")}</{tag}>'
+        body = render_inline_text(heading_text(section.content))
+        return f'<{tag} style="{CSS[tag]}">{body}</{tag}>'
     if section.type == "code":
         language = escape(section.language or "text")
         body = _highlight_code(section.language, section.content)
@@ -86,25 +126,38 @@ def _render_section(section: ArticleSection) -> str:
             tag = "th" if index == 0 else "td"
             rows.append(
                 "<tr>"
-                + "".join(f'<{tag} style="{CSS[tag]}">{escape(cell)}</{tag}>' for cell in row)
+                + "".join(
+                    f'<{tag} style="{CSS[tag]}">{render_inline_text(cell)}</{tag}>' for cell in row
+                )
                 + "</tr>"
             )
         return f'<table style="{CSS["table"]}"><tbody>{"".join(rows)}</tbody></table>'
     if section.type == "list":
-        items = "".join(f'<li style="{CSS["li"]}">{escape(item)}</li>' for item in section.items)
+        items = "".join(
+            f'<li style="{CSS["li"]}">{render_inline_text(item)}</li>' for item in section.items
+        )
         return f"<ul>{items}</ul>"
     if section.type == "steps":
-        items = "".join(f'<li style="{CSS["li"]}">{escape(item)}</li>' for item in section.items)
+        items = "".join(
+            f'<li style="{CSS["li"]}">{render_inline_text(item)}</li>' for item in section.items
+        )
         return f"<ol>{items}</ol>"
     if section.type == "callout":
-        return f'<section style="{CSS["callout"]}">{escape(section.content or "")}</section>'
+        return (
+            f'<section style="{CSS["callout"]}">{render_inline_text(section.content)}</section>'
+        )
     if section.type == "quote":
-        return f'<blockquote style="{CSS["quote"]}">{escape(section.content or "")}</blockquote>'
+        return (
+            f'<blockquote style="{CSS["quote"]}">'
+            f'{render_inline_text(section.content)}</blockquote>'
+        )
     if section.type == "figure":
         return (
             f'<p style="{CSS["p"]}"><img data-asset-id="{escape(section.asset_id or "")}" '
             f'alt="{escape(section.caption or "文章配图")}" '
             f'style="{WECHAT_ARTICLE_IMAGE_STYLE}" /></p>'
+            f'<p style="font-size:12px;color:#6b7280;text-align:center;margin:0 0 18px;">'
+            f'{escape(section.caption or "文章配图")}</p>'
         )
     return ""
 
@@ -177,6 +230,12 @@ def render_markdown_to_wechat_html(markdown_text: str) -> str:
             f'<{tag} style="{style}"',
             rendered,
         )
+    # Apply after base styles so the marker palette is not overwritten.
+    # Standalone paragraphs only; markers inside fenced code remain text.
+    rendered = re.sub(
+        r'<p(?: style="[^"]*")?>(%pill [^\n]*?|%formula [^\n]*?)</p>',
+        lambda match: _render_style_marker(unescape(match[1])) or match[0], rendered,
+    )
     body = f'<section style="{CSS["article"]}">{rendered}</section>'
     return bleach.clean(
         body,
@@ -212,6 +271,10 @@ def render_markdown_to_wechat_html(markdown_text: str) -> str:
         css_sanitizer=CSSSanitizer(
             allowed_css_properties={
                 "max-width",
+                "max-height",
+                "height",
+                "object-fit",
+                "display",
                 "margin",
                 "color",
                 "background",
@@ -252,9 +315,10 @@ def render_wechat_html(article: ArticleDocument, supplemental_html: str = "") ->
     sections = "".join(_render_section(section) for section in normalized_sections)
     body = (
         f'<section style="{CSS["article"]}">'
-        f'<h1 style="{CSS["h1"]}">{escape(article.selected_title)}</h1>'
+            f'<h1 style="{CSS["h1"]}">'
+            f'{render_inline_text(heading_text(article.selected_title))}</h1>'
         f"{sections}"
-        f'<p style="{CSS["p"]}">{escape(article.ending)}</p>'
+            f'<p style="{CSS["p"]}">{render_inline_text(article.ending)}</p>'
         f"{supplemental_html}"
         "</section>"
     )
@@ -278,6 +342,7 @@ def render_wechat_html(article: ArticleDocument, supplemental_html: str = "") ->
             "ol",
             "li",
             "strong",
+            "em",
             "a",
             "img",
             "small",
@@ -293,6 +358,9 @@ def render_wechat_html(article: ArticleDocument, supplemental_html: str = "") ->
         css_sanitizer=CSSSanitizer(
             allowed_css_properties={
                 "max-width",
+                "max-height",
+                "height",
+                "object-fit",
                 "margin",
                 "color",
                 "background-color",

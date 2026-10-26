@@ -36,6 +36,21 @@ def evaluate_article(
 ) -> ArticleQualityReport:
     issues: list[ArticleQualityIssue] = []
     word_count = _word_count(article)
+    public_text = "\n".join([
+        article.selected_title, article.digest, article.ending,
+        *(section.content or "" for section in article.sections),
+        *(" ".join(section.items) for section in article.sections),
+    ])
+    if re.search(
+        r"资料缺口|数据缺口|资料不足|待补充资料|未检索到相关|"
+        r"(?:缺乏|缺少).{0,12}(?:第三方|试验数据|学术数据)|"
+        r"(?:资料|材料|来源|证据).{0,12}(?:未提供|缺少|缺乏|不充分)",
+        public_text,
+    ):
+        issues.append(ArticleQualityIssue(
+            code="internal_research_status_in_copy",
+            message="成稿包含内部检索状态；删除缺口说明，保留有依据的完整正文。",
+        ))
     minimum = max(1_800, int(constraints.target_words * 0.8))
     headings = [section for section in article.sections if section.type == "heading"]
     allowed_claim_refs = {

@@ -8,14 +8,14 @@ SKILL_META = {
     "title": "事实与结构审核",
     "description": "按事实来源、表达与结构标准评审文章，最多两轮自动修订。",
     "category": "pipeline",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "builtin": True,
     "locked": True,
 }
 
 
 class ReviewSkill:
-    version = "1.0.0"
+    version = "1.1.0"
 
     def __init__(self, model):
         self.model = model

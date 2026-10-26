@@ -23,13 +23,7 @@ from app.workflows.state import ContentState
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_OFFICIAL_SOURCES = [
-    "https://docs.langchain.com/oss/python/langgraph/overview",
-    "https://modelcontextprotocol.io/docs",
-    "https://api-docs.deepseek.com/",
-    "https://developers.weixin.qq.com/doc/offiaccount/Getting_Started/Overview.html",
-    "https://github.com/openai/openai-agents-python",
-]
+DEFAULT_OFFICIAL_SOURCES: list[str] = []
 
 ADDITIVE_QUALITY_ISSUES = {
     "article_too_short",
@@ -441,8 +435,31 @@ def build_content_graph(deps: WorkflowDependencies, recorder: StepRecorder | Non
         return result
 
     async def needs_human(state: ContentState) -> dict:
+        result = {}
+        # Text quality still requires human review. Gallery originals do not need an
+        # LLM, web-image search or generation, and can accompany that review draft.
+        if ("article" in state and hasattr(deps.visuals, "local_plan")
+                and hasattr(deps.asset_materializer, "materialize_knowledge_only")):
+            try:
+                plan = await deps.visuals.local_plan(state["article"], deps.image_plan_context)
+                if plan.items:
+                    manifest, article = await deps.asset_materializer.materialize_knowledge_only(
+                        state["task"].id, plan, state["article"]
+                    )
+                    deps.artifacts.write_json(
+                        state["task"].id, "visual_plan", plan.model_dump(mode="json")
+                    )
+                    deps.artifacts.write_json(
+                        state["task"].id, "assets", manifest.model_dump(mode="json")
+                    )
+                    deps.artifacts.write_json(
+                        state["task"].id, "article", article.model_dump(mode="json")
+                    )
+                    result = {"article": article, "asset_manifest": manifest, "visual_plan": plan}
+            except Exception as error:
+                logger.warning("Review-draft gallery unavailable: %s", type(error).__name__)
         updated = deps.tasks.transition(state["task"].id, TaskStatus.NEEDS_HUMAN)
-        return {"task": updated, "status": updated.status}
+        return {**result, "task": updated, "status": updated.status}
 
     builder = StateGraph(ContentState)
     builder.add_node(
@@ -636,7 +653,7 @@ async def run_content_task(
             message = f"{type(error).__name__}: {error}"
             steps = recorder.snapshot().steps
             failed_step = steps[-1].node if steps else "unknown"
-            if error.code == "invalid_output" and failed_step == "rewrite":
+            if error.code == "invalid_output":
                 deps.artifacts.write_json(
                     task_id,
                     "invalid_model_output",
@@ -645,6 +662,7 @@ async def run_content_task(
                         "raw_output": redact_secrets(error.raw_output or ""),
                     },
                 )
+            if error.code == "invalid_output" and failed_step == "rewrite":
                 updated = deps.tasks.transition(task_id, TaskStatus.NEEDS_HUMAN)
                 recorder.mark_succeeded()
                 return {
