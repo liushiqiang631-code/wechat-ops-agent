@@ -26,9 +26,20 @@ def create_app(
         redoc_url="/redoc",
     )
     application.state.container = container or build_container(active)
+    if active.anonymous_spaces_enabled:
+        from app.api.spaces import router as spaces_router
+        from app.spaces import SpaceManager, install_space_middleware
+
+        spaces = SpaceManager(active)
+        spaces.require_owner()
+        application.state.spaces = spaces
+        install_space_middleware(application, spaces)
+        application.include_router(spaces_router)
 
     @application.get("/health", tags=["system"])
     def health() -> dict[str, object]:
+        if active.anonymous_spaces_enabled:
+            return {"status": "ok", "service": active.app_name, "version": __version__}
         return {
             "status": "ok",
             "service": active.app_name,

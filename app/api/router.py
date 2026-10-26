@@ -2,7 +2,18 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from app.api import articles, capabilities, mcp, media, metrics, settings, skills, tasks
+from app.api import (
+    articles,
+    capabilities,
+    channels,
+    mcp,
+    media,
+    metrics,
+    scripts,
+    settings,
+    skills,
+    tasks,
+)
 
 api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(tasks.router)
@@ -13,3 +24,8 @@ api_router.include_router(media.router)
 api_router.include_router(skills.router)
 api_router.include_router(mcp.router)
 api_router.include_router(settings.router)
+api_router.include_router(channels.router)
+api_router.include_router(channels.account_router)
+api_router.include_router(channels.post_router)
+api_router.include_router(channels.activity_router)
+api_router.include_router(scripts.router)

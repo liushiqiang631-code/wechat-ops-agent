@@ -1,21 +1,28 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
 
 from app.config.settings import Settings
 from app.db.base import Database
+from app.repositories.activity import ActivityLogRepository
+from app.repositories.channels import ChannelRepository
 from app.repositories.metrics import MetricsRepository
 from app.repositories.publications import PublicationRepository
+from app.repositories.scripts import ScriptRepository
 from app.repositories.skills import SkillStateRepository
 from app.repositories.tasks import TaskRepository
 from app.repositories.topics import TopicRecordRepository
 from app.services.analytics.topic_feedback import sync_topic_record_from
+from app.services.channels.seed import seed_demo_data
 from app.services.citations.fetcher import SafeSourceFetcher
 from app.services.editorial.quality import evaluate_article
 from app.services.images.assets import AssetMaterializer
 from app.services.images.dashscope import DashScopeImageClient
 from app.services.images.siliconflow import SiliconFlowImageClient
 from app.services.images.websearch import WikimediaImageSearch
+from app.services.knowledge import KnowledgeBaseClient
 from app.services.mcp.manager import McpManager
 from app.services.models.deepseek import DeepSeekClient
 from app.services.storage.artifacts import ArtifactStore
@@ -32,6 +39,7 @@ from app.skills.registry import SkillRegistry
 from app.skills.repurpose import RepurposeSkill
 from app.skills.research import ResearchSkill
 from app.skills.review import ReviewSkill
+from app.skills.script_writing import ScriptWritingSkill
 from app.skills.titles import TitleSkill
 from app.skills.topic_strategy import TopicStrategySkill
 from app.skills.visual_planning import VisualPlanningSkill
@@ -48,10 +56,14 @@ class ApplicationContainer:
     publications: PublicationRepository
     metrics: MetricsRepository
     topic_records: TopicRecordRepository
+    channels: ChannelRepository
+    scripts: ScriptRepository
+    activity: ActivityLogRepository
     artifacts: ArtifactStore
     deepseek: DeepSeekClient
     titles: TitleSkill
     repurpose: RepurposeSkill
+    script_writing: ScriptWritingSkill
     skills: SkillRegistry
     mcp: McpManager
     wechat: WeChatClient
@@ -60,6 +72,8 @@ class ApplicationContainer:
     media: MediaUploader
     drafts: DraftService
     workflow: WorkflowDependencies
+    workspace_id: str | None = None
+    settings_file: Path | None = None
 
 
 def build_container(settings: Settings) -> ApplicationContainer:
@@ -69,10 +83,23 @@ def build_container(settings: Settings) -> ApplicationContainer:
     publications = PublicationRepository(database.session_factory)
     metrics = MetricsRepository(database.session_factory)
     topic_records = TopicRecordRepository(database.session_factory)
+    channels = ChannelRepository(database.session_factory)
+    scripts = ScriptRepository(database.session_factory)
+    activity = ActivityLogRepository(database.session_factory)
+    if settings.seed_demo_data and not channels.accounts_seeded():
+        seed_demo_data(
+            channels,
+            scripts,
+            activity,
+            now=datetime.now().astimezone(),
+            wechat_account_name=settings.wechat_account_name,
+        )
     artifacts = ArtifactStore(settings.object_storage_path)
     deepseek = DeepSeekClient(settings)
+    script_writing = ScriptWritingSkill(deepseek)
     skill_states = SkillStateRepository(database.session_factory)
     skills = SkillRegistry(skill_states)
+    knowledge = KnowledgeBaseClient(settings) if settings.knowledge_base_enabled else None
     if settings.ai_image_generation_available and settings.image_model_provider == "dashscope":
         ai_generator = DashScopeImageClient(settings)
     elif settings.ai_image_generation_available:
@@ -85,6 +112,7 @@ def build_container(settings: Settings) -> ApplicationContainer:
         settings,
         ai_generator=ai_generator,
         search=image_search if settings.web_image_search_available else None,
+        knowledge=knowledge,
     )
     web_search = WebSearchService(settings) if settings.web_search_available else None
     mcp = McpManager(settings)
@@ -104,10 +132,11 @@ def build_container(settings: Settings) -> ApplicationContainer:
             source_fetcher,
             max_extra_sources=min(settings.web_search_max_results, settings.max_sources),
             max_sources=settings.max_sources,
+            knowledge=knowledge,
         ),
         editorial=EditorialPlanningSkill(deepseek),
         writing=WritingSkill(deepseek, registry=skills),
-        visuals=VisualPlanningSkill(deepseek),
+        visuals=VisualPlanningSkill(deepseek, knowledge=knowledge),
         review=ReviewSkill(deepseek),
         article_quality=evaluate_article,
         genui=GenUiSkill(deepseek),
@@ -125,14 +154,15 @@ def build_container(settings: Settings) -> ApplicationContainer:
             "web_search_available": settings.web_image_search_available,
             "cover_count": 1,
             "inline_image_count": 3,
+            "knowledge_base_available": knowledge is not None,
         },
         account_profile={
             "account": settings.wechat_account_name,
-            "positioning": "虚构示例账号：面向初学者的软件工程与工具使用教程",
+            "positioning": "面向种植户、农技人员与农业经销商的农业科普和田间管理公众号",
             "content_pillars": [
-                "编程入门",
-                "开发工具体验",
-                "可复现的小型示例",
+                "作物栽培、土壤健康与水肥管理",
+                "病虫害识别思路、农时管理与农事误区",
+                "有依据的产品应用、农业案例与寻山企业内容",
             ],
         },
         max_review_rounds=settings.max_review_rounds,
@@ -145,10 +175,14 @@ def build_container(settings: Settings) -> ApplicationContainer:
         publications=publications,
         metrics=metrics,
         topic_records=topic_records,
+        channels=channels,
+        scripts=scripts,
+        activity=activity,
         artifacts=artifacts,
         deepseek=deepseek,
         titles=titles,
         repurpose=repurpose,
+        script_writing=script_writing,
         skills=skills,
         mcp=mcp,
         wechat=wechat,

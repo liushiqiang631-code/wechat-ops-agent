@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 from contextvars import ContextVar, Token
 from dataclasses import dataclass
@@ -102,21 +103,27 @@ class DeepSeekClient:
             "Content-Type": "application/json",
         }
 
-    async def _request(self, method: str, path: str, **kwargs) -> httpx.Response:
+    async def _request(
+        self, method: str, path: str, *, streaming: bool = False, **kwargs
+    ) -> httpx.Response:
         owns_client = self._client is None
         client = self._client or httpx.AsyncClient(
             base_url=self.settings.deepseek_api_base,
-            timeout=httpx.Timeout(90.0, connect=15.0),
+            timeout=httpx.Timeout(90.0, connect=15.0, read=self.settings.text_model_read_timeout),
             trust_env=False,
         )
         try:
-            response = await client.request(
-                method,
-                path,
-                headers=self._headers(),
-                **kwargs,
-            )
-        except (httpx.TimeoutException, httpx.NetworkError) as exc:
+            if streaming:
+                async with asyncio.timeout(self.settings.text_model_request_timeout):
+                    async with client.stream(
+                        method, path, headers=self._headers(), **kwargs
+                    ) as response:
+                        self._check_response(response)
+                        body = await self._collect_stream(response)
+                        return httpx.Response(200, json=body, request=response.request)
+            async with asyncio.timeout(self.settings.text_model_request_timeout):
+                response = await client.request(method, path, headers=self._headers(), **kwargs)
+        except (TimeoutError, httpx.TimeoutException, httpx.NetworkError) as exc:
             raise ModelServiceError(
                 "DeepSeek request failed due to a network timeout",
                 code="network_error",
@@ -125,6 +132,11 @@ class DeepSeekClient:
         finally:
             if owns_client:
                 await client.aclose()
+        self._check_response(response)
+        return response
+
+    @staticmethod
+    def _check_response(response: httpx.Response) -> None:
         if response.status_code == 429:
             raise ModelServiceError(
                 "DeepSeek rate limit reached",
@@ -149,7 +161,45 @@ class DeepSeekClient:
                 code="request_failed",
                 retryable=False,
             )
-        return response
+
+    @staticmethod
+    async def _collect_stream(response: httpx.Response) -> dict:
+        content: list[str] = []
+        usage: dict = {}
+        finished = False
+        async for line in response.aiter_lines():
+            if not line.startswith("data:"):
+                continue
+            data = line[5:].strip()
+            if data == "[DONE]":
+                finished = True
+                break
+            try:
+                event = json.loads(data)
+            except json.JSONDecodeError as exc:
+                raise ModelServiceError(
+                    "Model returned an invalid stream event",
+                    code="invalid_stream", retryable=True,
+                ) from exc
+            if event.get("error"):
+                raise ModelServiceError(
+                    "Model stream reported an upstream error",
+                    code="service_unavailable", retryable=True,
+                )
+            if event.get("usage"):
+                usage = event["usage"]
+            for choice in event.get("choices", []):
+                if choice.get("index", 0) == 0:
+                    # Reasoning deltas keep the connection active but are not article text.
+                    text = choice.get("delta", {}).get("content")
+                    if text:
+                        content.append(text)
+        if not finished:
+            raise ModelServiceError(
+                "Model stream disconnected before completion; partial output was not saved",
+                code="incomplete_stream", retryable=True,
+            )
+        return {"choices": [{"message": {"content": "".join(content)}}], "usage": usage}
 
     async def list_models(self) -> list[str]:
         response = await self._request("GET", "/models")
@@ -163,7 +213,9 @@ class DeepSeekClient:
             cleaned = cleaned.rsplit("```", 1)[0].strip()
         return json.loads(cleaned)
 
-    async def _chat(self, messages: list[dict[str, str]]) -> dict:
+    async def _chat(
+        self, messages: list[dict[str, str]], *, max_output_tokens: int | None = None
+    ) -> dict:
         remaining = (
             self.settings.max_total_tokens
             - _TASK_TOKEN_USAGE.get()
@@ -171,7 +223,9 @@ class DeepSeekClient:
         )
         estimated_prompt_tokens = sum(len(message.get("content", "")) for message in messages)
         max_completion_tokens = min(
-            self.settings.deepseek_max_output_tokens, remaining - estimated_prompt_tokens
+            self.settings.deepseek_max_output_tokens,
+            max_output_tokens or self.settings.deepseek_max_output_tokens,
+            remaining - estimated_prompt_tokens,
         )
         if max_completion_tokens < 256:
             raise ModelServiceError(
@@ -182,7 +236,7 @@ class DeepSeekClient:
         payload = {
             "model": self.settings.deepseek_model,
             "messages": messages,
-            "stream": False,
+            "stream": self.settings.text_model_streaming_enabled,
             "response_format": {"type": "json_object"},
             "thinking": {
                 "type": "enabled" if self.settings.deepseek_thinking_enabled else "disabled"
@@ -190,7 +244,18 @@ class DeepSeekClient:
             "reasoning_effort": self.settings.deepseek_reasoning_effort,
             "max_tokens": max_completion_tokens,
         }
-        response = await self._request("POST", "/chat/completions", json=payload)
+        if self.settings.text_model_streaming_enabled:
+            payload["stream_options"] = {"include_usage": True}
+        for attempt in range(2):
+            try:
+                response = await self._request(
+                    "POST", "/chat/completions", json=payload,
+                    streaming=self.settings.text_model_streaming_enabled,
+                )
+                break
+            except ModelServiceError as error:
+                if attempt or error.code not in {"network_error", "incomplete_stream"}:
+                    raise
         body = response.json()
         used = int(body.get("usage", {}).get("total_tokens", 0) or 0)
         total = _TASK_TOKEN_USAGE.get() + used
@@ -220,30 +285,49 @@ class DeepSeekClient:
             },
             {"role": "user", "content": user},
         ]
-        response = await self._chat(messages)
+        output_limit = {
+            "ResearchPack": 4096,
+            "EditorialBlueprint": 4096,
+            "ReviewReport": 4096,
+            "VisualPlan": 4096,
+            "ArticleSupplement": 4096,
+        }.get(response_model.__name__)
+        response = await self._chat(messages, max_output_tokens=output_limit)
         try:
             raw = self._content_to_json(response["choices"][0]["message"]["content"])
             parsed = response_model.model_validate(raw)
-        except (KeyError, IndexError, json.JSONDecodeError, ValidationError):
+        except (KeyError, IndexError, json.JSONDecodeError, ValidationError) as validation_error:
             # Give the model its own failed output so the repair turn can correct
             # the specific format problem instead of repeating it.
             raw_failed = response.get("choices", [{}])[0].get("message", {}).get("content") or ""
+            details = (
+                json.dumps(validation_error.errors(
+                    include_input=False, include_context=False, include_url=False,
+                ), ensure_ascii=False)
+                if isinstance(validation_error, ValidationError)
+                else str(validation_error)
+            )
             messages.extend(
                 [
                     {"role": "assistant", "content": raw_failed},
                     {
                         "role": "user",
-                        "content": "The previous output was invalid. Return only corrected JSON.",
+                        "content": (
+                            "The previous output was invalid. Return only corrected JSON. "
+                            "Fix these validation errors without changing supported facts:\n"
+                            + details[:6000]
+                        ),
                     },
                 ]
             )
-            response = await self._chat(messages)
+            response = await self._chat(messages, max_output_tokens=output_limit)
             try:
                 raw = self._content_to_json(response["choices"][0]["message"]["content"])
                 parsed = response_model.model_validate(raw)
             except (KeyError, IndexError, json.JSONDecodeError, ValidationError) as exc:
                 raise ModelServiceError(
-                    "DeepSeek returned invalid structured output after one repair",
+                    f"Model returned invalid {response_model.__name__} structured output "
+                    "after one repair",
                     code="invalid_output",
                     retryable=True,
                     raw_output=(

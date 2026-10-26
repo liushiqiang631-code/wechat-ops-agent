@@ -48,7 +48,7 @@ def save_wechat_settings(
     }
     if app_secret.strip():
         updates["WECHAT_APP_SECRET"] = app_secret
-    update_env_file(_env_file_path(), updates)
+    update_env_file(container.settings_file or _env_file_path(), updates)
 
     settings.wechat_account_name = account_name
     settings.wechat_app_id = app_id or None
