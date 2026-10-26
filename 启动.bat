@@ -9,7 +9,8 @@ set "PORT=8000"
 
 rem ---- Locate a suitable Python (project requires >=3.12,<3.14) ----
 set "PYCMD="
-py -3.13 -c "import sys" >nul 2>&1 && set "PYCMD=py -3.13"
+if exist ".venv\Scripts\python.exe" set "PYCMD=.venv\Scripts\python.exe"
+if not defined PYCMD py -3.13 -c "import sys" >nul 2>&1 && set "PYCMD=py -3.13"
 if not defined PYCMD py -3.12 -c "import sys" >nul 2>&1 && set "PYCMD=py -3.12"
 if not defined PYCMD python -c "import sys" >nul 2>&1 && set "PYCMD=python"
 
