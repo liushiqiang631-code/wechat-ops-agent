@@ -17,17 +17,23 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    app_name: str = "微信公众号数据驱动运营 Agent"
+    app_name: str = "全域内容运营平台"
     app_env: Literal["development", "test", "production"] = "development"
     app_host: str = "127.0.0.1"
     app_port: int = 8000
     app_secret_key: SecretStr = Field(default=SecretStr("development-only"))
     business_timezone: str = "Asia/Shanghai"
-    operator_name: str = "运营者"
+    operator_name: str = "运营小明"
+    team_name: str = "运营团队"
+    # 渠道数据默认留空占位；仅演示需要时显式开启示例数据生成。
+    seed_demo_data: bool = False
 
     database_url: str = "sqlite:///./wechat_ops.db"
     object_storage_path: Path = Path("./outputs")
     workflow_checkpoint_path: Path = Path("./outputs/workflow_checkpoints.sqlite")
+    anonymous_spaces_enabled: bool = False
+    anonymous_spaces_path: Path = Path("./runtime/spaces")
+    anonymous_cookie_secure: bool = True
 
     text_model_provider: Literal["deepseek"] = "deepseek"
     deepseek_api_base: str = "https://api.deepseek.com"
@@ -37,6 +43,9 @@ class Settings(BaseSettings):
     deepseek_reasoning_effort: Literal["low", "medium", "high"] = "high"
     # 单次请求的 completion 上限；思考 token 与正文 JSON 共用这个额度
     deepseek_max_output_tokens: int = Field(default=8_192, ge=256, le=65_536)
+    text_model_read_timeout: float = Field(default=300.0, ge=30.0, le=1800.0)
+    text_model_request_timeout: float = Field(default=180.0, ge=30.0, le=1800.0)
+    text_model_streaming_enabled: bool = False
 
     wechat_account_name: str = ""
     wechat_app_id: str | None = None
@@ -66,6 +75,12 @@ class Settings(BaseSettings):
     web_search_timeout: float = 30.0
 
     mcp_servers_path: Path = Path("./mcp_servers.json")
+
+    knowledge_base_enabled: bool = False
+    knowledge_base_api_url: str = "http://127.0.0.1:8010"
+    knowledge_base_public_url: str = "https://kb.xunshanshengwu.cn"
+    knowledge_base_token: SecretStr | None = None
+    knowledge_base_timeout: float = Field(default=15.0, ge=1, le=60)
 
     max_research_queries: int = Field(default=8, ge=1, le=20)
     max_sources: int = Field(default=20, ge=1, le=50)
@@ -108,6 +123,7 @@ class Settings(BaseSettings):
             "wechat_app_secret",
             "siliconflow_api_key",
             "dashscope_api_key",
+            "knowledge_base_token",
         }
         return self.model_dump(exclude=excluded)
 

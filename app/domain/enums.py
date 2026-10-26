@@ -63,6 +63,22 @@ TASK_RUN_IN_FLIGHT_STATUSES = frozenset(
 )
 
 
+class Channel(StrEnum):
+    XIAOHONGSHU = "xiaohongshu"
+    SHIPINHAO = "shipinhao"
+    DOUYIN = "douyin"
+    KUAISHOU = "kuaishou"
+    WECHAT = "wechat"
+
+
+class ChannelPostStatus(StrEnum):
+    DRAFT = "draft"
+    PENDING_REVIEW = "pending_review"
+    SCHEDULED = "scheduled"
+    PUBLISHED = "published"
+    FAILED = "failed"
+
+
 class ProbeStatus(StrEnum):
     AVAILABLE = "available"
     BLOCKED = "blocked"

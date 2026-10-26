@@ -26,7 +26,9 @@ def _legacy_revision(database_url: str) -> str | None:
             and {"title_hint", "plan_id"}.issubset(task_columns)
         )
         if has_topic_schema and "skill_states" in tables:
-            return "head" if version != "0003_skill_states" else None
+            if "channel_posts" in tables:
+                return "head" if version != "0004_omni_channel" else None
+            return "0003_skill_states" if version != "0003_skill_states" else None
         if has_topic_schema:
             revision = "0002_topic_records_and_plan_id"
             return revision if version != revision else None

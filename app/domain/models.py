@@ -1,12 +1,20 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any, Literal
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
+from pydantic.json_schema import SkipJsonSchema
 
-from app.domain.enums import EvidenceType, ProbeStatus, TaskMode, TaskStatus
+from app.domain.enums import (
+    Channel,
+    ChannelPostStatus,
+    EvidenceType,
+    ProbeStatus,
+    TaskMode,
+    TaskStatus,
+)
 
 
 class DomainModel(BaseModel):
@@ -15,10 +23,10 @@ class DomainModel(BaseModel):
 
 class TaskConstraints(DomainModel):
     target_words: int = Field(default=2500, ge=300, le=20_000)
-    audience: str = "AI 应用开发者"
+    audience: str = "种植户、农技人员与农业经销商"
     cover_count: int = Field(default=1, ge=0, le=1)
     inline_image_count: int = Field(default=3, ge=0, le=8)
-    need_code: bool = True
+    need_code: bool = False
     auto_push_to_draft: bool = True
     auto_publish: bool = False
 
@@ -90,7 +98,8 @@ class ResearchClaim(DomainModel):
     published_at: datetime | None = None
     retrieved_at: datetime
     source_type: Literal[
-        "official_doc", "official_blog", "official_repo", "paper", "standard", "media", "community"
+        "official_doc", "official_blog", "official_repo", "paper", "standard", "media", "community",
+        "knowledge_base",
     ]
     confidence: float = Field(ge=0, le=1)
     quote_or_evidence: str | None = None
@@ -116,6 +125,9 @@ class ResearchPack(DomainModel):
     sources: list[HttpUrl]
     limitations: list[str] = Field(default_factory=list)
     search_hits: list[WebSearchHit] = Field(default_factory=list)
+    supplemental_queries: list[str] = Field(default_factory=list, max_length=3)
+    # Only the retrieval service populates this field; never ask a model to recreate originals.
+    source_snapshots: SkipJsonSchema[list[SourceSnapshot]] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def require_claims(self) -> ResearchPack:
@@ -236,6 +248,19 @@ class ArticleSection(DomainModel):
     claim_refs: list[str] = Field(default_factory=list)
     code_status: Literal["verified", "pseudocode"] | None = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_legacy_style_section(cls, value: Any) -> Any:
+        # Normalize only the known, lossless legacy style form; keep other types strict.
+        if isinstance(value, dict) and value.get("type") == "pill":
+            content = value.get("content")
+            if isinstance(content, str):
+                body = content.strip().removeprefix("%pill ").strip()
+                parts = body.rsplit(maxsplit=1)
+                if len(parts) == 2 and parts[1] in {"orange", "green", "purple", "blue", "red"}:
+                    return {**value, "type": "paragraph", "content": "%pill " + body}
+        return value
+
     @model_validator(mode="after")
     def validate_shape(self) -> ArticleSection:
         if self.type == "heading" and self.level is None:
@@ -353,7 +378,8 @@ class VisualItem(DomainModel):
     # How the raster image should be obtained: AI generation (SiliconFlow) or a
     # web image search. Deterministic diagrams (mermaid/graphviz/code) keep
     # provider="deterministic" and leave source unset.
-    source: Literal["ai_generated", "web_search"] | None = None
+    source: Literal["ai_generated", "web_search", "knowledge_base"] | None = None
+    knowledge_image_id: str | None = Field(default=None, pattern=r"^[a-f0-9]{32}$")
     caption: str | None = None
 
 
@@ -377,7 +403,7 @@ class AssetRecord(DomainModel):
     asset_id: str
     kind: str
     caption: str | None = None
-    source: Literal["ai_generated", "web_search"] | None = None
+    source: Literal["ai_generated", "web_search", "knowledge_base"] | None = None
     provider: str | None = None
     query_or_prompt: str | None = None
     local_path: str | None = None
@@ -389,7 +415,7 @@ class AssetRecord(DomainModel):
     author: str | None = None
     status: Literal["ready", "failed", "skipped"] = "ready"
     error: str | None = None
-    created_at: datetime = Field(default_factory=datetime.now)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class AssetManifest(DomainModel):
@@ -571,3 +597,114 @@ class McpServerStatus(DomainModel):
     tools: list[McpToolInfo] = Field(default_factory=list)
     latency_ms: int | None = None
     probed_at: datetime | None = None
+
+
+class ChannelAccount(DomainModel):
+    key: Channel
+    display_name: str = Field(min_length=1, max_length=60)
+    handle: str = Field(min_length=1, max_length=80)
+    account_type: str = Field(min_length=1, max_length=40)
+    status: Literal["active", "paused"] = "active"
+    followers: int = Field(default=0, ge=0)
+    updated_at: datetime = Field(default_factory=datetime.now)
+
+
+class ChannelPost(DomainModel):
+    id: str = Field(default_factory=lambda: str(uuid4()))
+    channel: Channel
+    content_type: str = Field(min_length=1, max_length=40)
+    title: str = Field(min_length=2, max_length=200)
+    excerpt: str = Field(default="", max_length=500)
+    category: str = Field(default="", max_length=40)
+    status: ChannelPostStatus = ChannelPostStatus.DRAFT
+    cover_seed: str = Field(default="", max_length=80)
+    task_id: str | None = None
+    script_id: str | None = None
+    scheduled_at: datetime | None = None
+    published_at: datetime | None = None
+    views: int = Field(default=0, ge=0)
+    likes: int = Field(default=0, ge=0)
+    comments: int = Field(default=0, ge=0)
+    shares: int = Field(default=0, ge=0)
+    favorites: int = Field(default=0, ge=0)
+    source: Literal["manual", "agent", "demo"] = "manual"
+    last_error: str | None = None
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+
+
+class ScriptBeat(DomainModel):
+    time_range: str = Field(min_length=1, max_length=20)
+    shot: str = Field(min_length=1, max_length=200)
+    voiceover: str = Field(min_length=1, max_length=1_000)
+    on_screen_text: str | None = Field(default=None, max_length=200)
+
+
+class VideoScript(DomainModel):
+    id: str = Field(default_factory=lambda: str(uuid4()))
+    title: str = Field(min_length=2, max_length=120)
+    topic: str = Field(min_length=2, max_length=200)
+    channel: Channel
+    duration_seconds: int = Field(ge=15, le=600)
+    audience: str = Field(min_length=1, max_length=120)
+    hook: str = Field(min_length=2, max_length=300)
+    beats: list[ScriptBeat] = Field(min_length=1, max_length=12)
+    ending: str = Field(min_length=1, max_length=400)
+    cover_idea: str | None = Field(default=None, max_length=300)
+    hashtags: list[str] = Field(default_factory=list, max_length=10)
+    article_angle: str | None = Field(default=None, max_length=400)
+    status: Literal["draft", "converted"] = "draft"
+    source: Literal["model", "manual", "demo"] = "model"
+    task_id: str | None = None
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+
+    @property
+    def voiceover_text(self) -> str:
+        parts = [self.hook]
+        parts.extend(beat.voiceover for beat in self.beats)
+        parts.append(self.ending)
+        return "\n".join(parts)
+
+
+class ScriptGenerateRequest(DomainModel):
+    topic: str = Field(min_length=2, max_length=120)
+    channel: Channel = Channel.SHIPINHAO
+    duration_seconds: int = Field(default=60, ge=15, le=600)
+    audience: str = Field(default="关注 AI 效率的职场人", max_length=120)
+    key_points: list[str] = Field(default_factory=list, max_length=6)
+    tone: str = Field(default="专业但口语化", max_length=60)
+
+
+class ChannelPostCreate(DomainModel):
+    channel: Channel
+    content_type: str = Field(min_length=1, max_length=40)
+    title: str = Field(min_length=2, max_length=200)
+    excerpt: str = Field(default="", max_length=500)
+    category: str = Field(default="", max_length=40)
+    status: ChannelPostStatus = ChannelPostStatus.DRAFT
+    scheduled_at: datetime | None = None
+    published_at: datetime | None = None
+    views: int = Field(default=0, ge=0)
+    likes: int = Field(default=0, ge=0)
+    comments: int = Field(default=0, ge=0)
+    shares: int = Field(default=0, ge=0)
+    favorites: int = Field(default=0, ge=0)
+
+    @model_validator(mode="after")
+    def validate_dates(self) -> ChannelPostCreate:
+        if self.status == ChannelPostStatus.PUBLISHED and self.published_at is None:
+            self.published_at = datetime.now()
+        if self.status == ChannelPostStatus.SCHEDULED and self.scheduled_at is None:
+            raise ValueError("待发布内容需要 scheduled_at")
+        return self
+
+
+class ActivityLog(DomainModel):
+    id: int | None = None
+    kind: str = Field(min_length=1, max_length=60)
+    title: str = Field(min_length=1, max_length=200)
+    detail: str | None = Field(default=None, max_length=500)
+    channel: Channel | None = None
+    ref_id: str | None = Field(default=None, max_length=80)
+    created_at: datetime = Field(default_factory=datetime.now)
