@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="performance-page" aria-labelledby="performance-title">
+  <header class="page-head">
+    <div class="page-head-copy">
+      <h1 id="performance-title">内容表现</h1>
+      <p>近 30 天已发布内容的效果排名，数据来自渠道记录与回流指标。</p>
+    </div>
+    <div class="page-head-actions">
+      <a class="btn btn-ghost" href="/api/v1/channels/report.csv?days=30">导出近 30 天报表</a>
+    </div>
+  </header>
+
+  <div class="kpi-grid">
+    <article class="card kpi-card">
+      <p class="stat-label">已发布内容</p>
+      <strong class="stat-value">{{ performance_page.total }}</strong>
+      <p class="stat-change is-flat">近 30 天</p>
+    </article>
+    <article class="card kpi-card">
+      <p class="stat-label">总浏览量</p>
+      <strong class="stat-value">{{ performance_page.total_views_label }}</strong>
+      <p class="stat-change is-flat">全渠道合计</p>
+    </article>
+    <article class="card kpi-card">
+      <p class="stat-label">篇均浏览</p>
+      <strong class="stat-value">{{ performance_page.avg_views_label }}</strong>
+      <p class="stat-change is-flat">近 30 天</p>
+    </article>
+  </div>
+
+  <section class="card" aria-labelledby="ranking-title">
+    <div class="card-head">
+      <h2 id="ranking-title">内容浏览排行 Top 20</h2>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr><th>#</th><th>标题</th><th>渠道</th><th>浏览</th><th>点赞</th><th>评论</th><th>互动率</th><th>发布时间</th></tr>
+        </thead>
+        <tbody>
+          {% for row in performance_page.rows %}
+          <tr>
+            <td class="cell-rank">{{ row.rank }}</td>
+            <td class="cell-title">{{ row.title | truncate(36) }}</td>
+            <td><span class="channel-tag" style="--channel-color: {{ row.channel_color }}"><span class="channel-glyph" aria-hidden="true">{{ {'xiaohongshu': '红', 'shipinhao': '视', 'douyin': '抖', 'kuaishou': '快', 'wechat': '公'}[row.channel] }}</span>{{ row.channel_label }}</span></td>
+            <td><strong>{{ row.views_label }}</strong></td>
+            <td>{{ row.likes_label }}</td>
+            <td>{{ row.comments_label }}</td>
+            <td>{{ row.engagement_label }}</td>
+            <td><small>{{ row.published_label }}</small></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="8" class="cell-empty">近 30 天暂无已发布内容</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</section>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<section aria-labelledby="space-title">
+  <div class="section-heading">
+    <div><p class="section-label">PRIVATE SPACE</p><h2 id="space-title">我的空间</h2></div>
+    <span class="status-pill is-success">{{ space_label }}</span>
+  </div>
+  <p class="page-summary">无需注册。文章、任务、素材和公众号配置只属于当前空间；其他浏览器首次打开会进入另一个空空间。</p>
+  {% if request.query_params.get('expired') %}
+  <p class="space-notice" role="alert">原来的浏览器凭证已失效，当前是一个新空间。请用恢复码找回原来的内容。</p>
+  {% endif %}
+  <div class="settings-grid">
+    <section class="panel" aria-labelledby="save-space-title">
+      <div class="panel-heading"><h2 id="save-space-title">保存我的空间</h2></div>
+      <p class="page-summary">{{ '已生成过恢复码，请妥善保管。' if has_recovery else '你还没有生成恢复码。' }} 换设备、清理浏览器数据或一年后凭证到期时，可用恢复码找回内容。同一浏览器配置下的使用者共用此空间。</p>
+      <p class="field-help">恢复码相当于空间钥匙，拿到它的人可以访问全部内容。更换恢复码后，旧码和其他设备的访问凭证会失效，当前浏览器保留访问权限。</p>
+      <button class="button button-primary" type="button" id="space-generate"
+              data-has-recovery="{{ 'true' if has_recovery else 'false' }}">{{ '更换恢复码' if has_recovery else '生成恢复码' }}</button>
+      <div id="space-code-panel" hidden>
+        <label class="field-label" for="space-recovery-code">请立即保存（离开页面后不再显示）</label>
+        <textarea id="space-recovery-code" rows="3" readonly autocomplete="off" spellcheck="false"></textarea>
+        <div class="settings-actions">
+          <button class="button button-secondary" type="button" id="space-copy">复制恢复码</button>
+          <button class="button button-secondary" type="button" id="space-download">下载恢复码</button>
+        </div>
+      </div>
+      <p id="space-save-message" class="field-help" role="status"></p>
+    </section>
+    <section class="panel" aria-labelledby="restore-space-title">
+      <div class="panel-heading"><h2 id="restore-space-title">恢复已有空间</h2></div>
+      <p class="page-summary">输入已保存的恢复码，在这台设备继续使用原来的文章和配置。当前空间的数据会保留；切换前请先保存当前空间的恢复码。</p>
+      <form id="space-restore-form">
+        <label class="field-label" for="space-restore-code">空间恢复码</label>
+        <input id="space-restore-code" type="password" required maxlength="100"
+               placeholder="wxspace_ 开头的恢复码" autocomplete="off" spellcheck="false">
+        <div class="settings-actions"><button class="button button-primary" type="submit">恢复并进入空间</button></div>
+        <p id="space-restore-message" class="form-error" role="alert"></p>
+      </form>
+    </section>
+  </div>
+  <p class="field-help">找不到恢复码、浏览器凭证也已丢失时，无法自动找回空间。请把恢复码保存到你自己的安全位置。</p>
+</section>
+<script defer src="/static/spaces.js?v=1"></script>
+{% endblock %}

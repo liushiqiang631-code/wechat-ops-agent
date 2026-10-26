@@ -11,7 +11,8 @@
   </div>
 
   <p class="page-summary">
-    公众号连接可在下方表单直接保存；写作模型、配图等其余配置仍在本机 .env 中填写（已由 Git 忽略）。
+    {% if request.state.space_id %}公众号连接配置仅保存到当前私人空间；写作模型与配图服务由站点统一提供。
+    {% else %}公众号连接可在下方表单直接保存；写作模型、配图等其余配置仍在本机 .env 中填写（已由 Git 忽略）。{% endif %}
     页面不会显示任何密钥内容。
   </p>
 
@@ -83,7 +84,7 @@
           <button class="button button-primary" type="submit">保存配置</button>
         </div>
         <p class="field-help">
-          保存到本机 .env 并立即生效，无需重启；密钥不回显。获取方式：微信公众平台 → 设置与开发 → 基本配置，
+          {{ '仅保存到当前空间并立即生效' if request.state.space_id else '保存到本机 .env 并立即生效' }}，无需重启；密钥不回显。获取方式：微信公众平台 → 设置与开发 → 基本配置，
           并把本机出口 IP 加入该页的 IP 白名单。
         </p>
       </form>

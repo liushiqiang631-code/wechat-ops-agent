@@ -1,0 +1,22 @@
+{# 趋势组合图（服务端预计算坐标）。上下文：trend（必填），skip（x 轴标签抽稀间隔，默认 1）。 #}
+<svg viewBox="0 0 {{ trend.width }} {{ trend.height }}" role="img"
+     aria-label="阅读量与分享次数趋势图">
+  {% for tick in trend.y_ticks %}
+  <g class="chart-gridline">
+    <line x1="{{ trend.pad_left }}" x2="{{ trend.width - 8 }}" y1="{{ trend.pad_bottom + (trend.inner_h * (1 - tick.ratio)) | round(1) }}" y2="{{ trend.pad_bottom + (trend.inner_h * (1 - tick.ratio)) | round(1) }}"/>
+    <text x="{{ trend.pad_left - 6 }}" y="{{ trend.pad_bottom + (trend.inner_h * (1 - tick.ratio)) | round(1) + 3 }}">{{ tick.label }}</text>
+  </g>
+  {% endfor %}
+  {% for bar in trend.bars %}<rect class="chart-bar-reads" x="{{ bar.x }}" y="{{ bar.y }}" width="{{ bar.w }}" height="{{ bar.h }}" rx="3"/>{% endfor %}
+  {% for bar in trend.shares_bars %}<rect class="chart-bar-shares" x="{{ bar.x }}" y="{{ bar.y }}" width="{{ bar.w }}" height="{{ bar.h }}" rx="3"/>{% endfor %}
+  <polyline class="chart-line" points="{{ trend.line_points }}"/>
+  {% for dot in trend.dots %}<circle class="chart-dot" cx="{{ dot.x }}" cy="{{ dot.y }}" r="2.6"/>{% endfor %}
+  {% set _skip = skip if skip is defined and skip else 1 %}
+  {% for label in trend.labels %}
+  {% if (loop.index0 % _skip) == 0 %}<text class="chart-label" x="{{ label.x }}" y="{{ trend.height - 6 }}">{{ label.label }}</text>{% endif %}
+  {% endfor %}
+</svg>
+<figcaption class="chart-legend">
+  <span class="legend-item is-reads">阅读量</span>
+  <span class="legend-item is-shares">分享次数</span>
+</figcaption>

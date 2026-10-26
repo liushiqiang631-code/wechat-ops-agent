@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="channel-detail-page" aria-labelledby="channel-detail-title">
+  <header class="page-head">
+    <div class="page-head-copy channel-id">
+      <span class="channel-glyph is-{{ channel_page.key }} is-large" aria-hidden="true">{{ {'xiaohongshu': '红', 'shipinhao': '视', 'douyin': '抖', 'kuaishou': '快', 'wechat': '公'}[channel_page.key] }}</span>
+      <div>
+        <h1 id="channel-detail-title">{{ channel_page.label }}</h1>
+        <p>{% if channel_page.connected %}{{ channel_page.display_name }}{% if channel_page.handle %} · {{ channel_page.handle }}{% endif %} · {{ channel_page.account_type }}{% else %}暂未接入 · 接入数据源或手动登记后这里会自动填充{% endif %}</p>
+      </div>
+    </div>
+    <div class="page-head-actions">
+      <button class="btn btn-primary" type="button" data-open-drawer="post-drawer">
+        <span aria-hidden="true">＋</span> 创建发布
+      </button>
+    </div>
+  </header>
+
+  <div class="kpi-grid channel-kpis">
+    <article class="card kpi-card">
+      <p class="stat-label">粉丝数</p>
+      <strong class="stat-value">{{ channel_page.followers_label }}</strong>
+      <p class="stat-change is-flat">{{ channel_page.status_label }}</p>
+    </article>
+    <article class="card kpi-card">
+      <p class="stat-label">近 7 天浏览</p>
+      <strong class="stat-value">{{ channel_page.views_7d }}</strong>
+      <p class="stat-change is-flat">{% if channel_page.total %}按已发布内容汇总{% else %}暂无发布记录{% endif %}</p>
+    </article>
+    <article class="card kpi-card">
+      <p class="stat-label">近 30 天发布</p>
+      <strong class="stat-value">{{ channel_page.published_30d if channel_page.published_30d is not none else '—' }}</strong>
+      <p class="stat-change is-flat">{% if channel_page.total %}篇已发布内容{% else %}接入或登记后统计{% endif %}</p>
+    </article>
+    <article class="card kpi-card">
+      <p class="stat-label">平均互动率</p>
+      <strong class="stat-value">{{ channel_page.engagement_label }}</strong>
+      <p class="stat-change is-flat">(点赞+评论+分享)/浏览</p>
+    </article>
+  </div>
+
+  <section class="card" aria-labelledby="channel-posts-title">
+    <div class="card-head">
+      <h2 id="channel-posts-title">近期发布记录</h2>
+      <span class="rail-count">{{ channel_page.total }}</span>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr><th>标题</th><th>形态</th><th>状态</th><th>浏览</th><th>点赞</th><th>评论</th><th>时间</th></tr>
+        </thead>
+        <tbody>
+          {% for entry in channel_page.posts %}
+          <tr>
+            <td class="cell-title">{{ entry.title | truncate(32) }}</td>
+            <td>{{ entry.content_type }}</td>
+            <td><span class="status-pill is-{{ entry.status_tone }}">{{ entry.status_label }}</span></td>
+            <td>{{ entry.views_label }}</td>
+            <td>{{ entry.likes_label }}</td>
+            <td>{{ entry.comments_label }}</td>
+            <td><small>{{ entry.published_label }}</small></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7" class="cell-empty">该渠道暂无发布记录</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</section>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="team-page" aria-labelledby="team-title">
+  <header class="page-head">
+    <div class="page-head-copy">
+      <h1 id="team-title">团队成员</h1>
+      <p>本地部署默认单运营者；如需多人协作，请为服务配置访问认证后再扩展角色。</p>
+    </div>
+  </header>
+
+  <div class="channel-grid">
+    <article class="card channel-card">
+      <div class="channel-card-head">
+        <span class="channel-glyph is-wechat is-large" aria-hidden="true">{{ team_page.operator[:1] }}</span>
+        <div class="channel-card-copy">
+          <h2>{{ team_page.operator }}</h2>
+          <p>{{ team_page.team }} · {{ team_page.role }}</p>
+        </div>
+        <span class="status-pill is-success">在线</span>
+      </div>
+      <ul class="config-list">
+        <li>内容创建、审核与发布登记的全部权限。</li>
+        <li>可通过系统设置修改昵称（OPERATOR_NAME）与团队名（TEAM_NAME）。</li>
+      </ul>
+    </article>
+
+    <article class="card channel-card">
+      <div class="channel-card-head">
+        <span class="channel-glyph is-wechat" aria-hidden="true">◈</span>
+        <div class="channel-card-copy">
+          <h2>角色与权限</h2>
+          <p>当前生效的角色说明</p>
+        </div>
+      </div>
+      <ul class="config-list">
+        <li><strong>管理员</strong>：账号渠道管理、写稿任务、脚本生成、发布登记与效果回流。</li>
+        <li><strong>审批人</strong>：确认渠道内容发布、处理失败重试（当前由管理员兼任）。</li>
+        <li><strong>Agent</strong>：自动完成研究、写作、配图与排版，不执行正式发布。</li>
+      </ul>
+    </article>
+  </div>
+</section>
+{% endblock %}

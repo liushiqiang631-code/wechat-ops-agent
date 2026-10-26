@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
-  <title>微信公众号运营助手 AGENT</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%2307c160'/%3E%3Cellipse cx='13' cy='13.5' rx='8' ry='6.6' fill='white'/%3E%3Cellipse cx='20.5' cy='19' rx='6.4' ry='5.4' fill='white' fill-opacity='.92'/%3E%3Ccircle cx='10.4' cy='12.6' r='1.15' fill='%2307c160'/%3E%3Ccircle cx='15.6' cy='12.6' r='1.15' fill='%2307c160'/%3E%3C/svg%3E">
+  <title>全域内容运营平台</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%2315b567'/%3E%3Cpath d='M8 17.5 13.5 23 24 10.5' fill='none' stroke='white' stroke-width='3.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="/static/app.css?v={{ asset_version }}">
   <script defer src="/static/app.js?v={{ asset_version }}"></script>
 </head>
@@ -13,94 +13,162 @@
 <div class="app-shell">
 
   <aside class="sidebar">
-    <a class="brand" href="/" aria-label="返回总览">
+    <a class="brand" href="/" aria-label="返回发布中心">
       <span class="brand-mark" aria-hidden="true">
         <svg viewBox="0 0 32 32" role="img">
-          <ellipse cx="13" cy="13.5" rx="8" ry="6.6"/>
-          <ellipse cx="20.5" cy="19" rx="6.4" ry="5.4" class="brand-mark-soft"/>
-          <circle class="brand-mark-eye" cx="10.4" cy="12.6" r="1.15"/>
-          <circle class="brand-mark-eye" cx="15.6" cy="12.6" r="1.15"/>
+          <path d="M8 17.5 13.5 23 24 10.5" fill="none" stroke="currentColor"
+                stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </span>
       <span class="brand-copy">
-        <strong>微信公众号运营助手 AGENT</strong>
-        <small>让优质内容持续发生</small>
+        <strong>全域内容运营平台</strong>
+        <small>让内容产生更大价值</small>
       </span>
     </a>
 
     <nav class="side-nav" aria-label="功能导航">
-      {% set nav_items = [
-        ("overview", "/", "总览", "M3 10.5 12 3l9 7.5M5.5 9v11h13V9"),
-        ("topics", "/topics", "选题中心", "M12 3a6 6 0 0 1 3.4 10.9c-.6.5-.9 1.1-.9 1.9v.7h-5v-.7c0-.8-.3-1.4-.9-1.9A6 6 0 0 1 12 3Zm-2.4 17h4.8"),
-        ("tasks", "/tasks", "AI 写稿", "M14.5 4.5 19 9 8.5 19.5 4 20l.5-4.5Zm2 2 1.5 1.5"),
-        ("media", "/media", "配图生成", "M4 5.5h16v13H4Zm2.5 9 3-3.5 3 3 2.5-2.5 2.5 3M9.3 9.6a1.1 1.1 0 1 1-2.2 0 1.1 1.1 0 0 1 2.2 0Z"),
-        ("drafts", "/drafts", "草稿箱同步", "M3.5 5.5h17v13h-17Zm0 4h17M7 13h6"),
-        ("schedule", "/schedule", "定时群发", "M12.5 3.5a8.5 8.5 0 1 1-8.9 10M12.5 7.5v4l2.8 1.8M3.5 4.5v4h4"),
-        ("data", "/data", "数据分析", "M4 20V10m5.3 10V4m5.4 16v-8m5.3 8V7"),
-        ("fans", "/fans", "粉丝运营", "M15.5 20v-1.6a4 4 0 0 0-4-4h-5a4 4 0 0 0-4 4V20M9 10.8a3.6 3.6 0 1 0 0-7.2 3.6 3.6 0 0 0 0 7.2Zm6.5-.4a3 3 0 1 0-1.7-5.5M17.5 14.5a4 4 0 0 1 4 4V20"),
-        ("calendar", "/calendar", "运营日历", "M4 6h16v14H4Zm0 4.5h16M8.5 3.5V7m7-3.5V7"),
-        ("workflow", "/workflow", "工作流", "M6 4.5v5a4 4 0 0 0 4 4h8.5m0 0-3-3m3 3-3 3M6 15.5v4"),
-        ("settings", "/settings", "系统设置", "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm7.4-3a7.4 7.4 0 0 0-.1-1.2l2-1.5-2-3.4-2.3 1a7.6 7.6 0 0 0-2-1.2L14.6 3h-4l-.4 2.5a7.6 7.6 0 0 0-2 1.2l-2.3-1-2 3.4 2 1.5a7.4 7.4 0 0 0 0 2.4l-2 1.5 2 3.4 2.3-1a7.6 7.6 0 0 0 2 1.2l.4 2.5h4l.4-2.5a7.6 7.6 0 0 0 2-1.2l2.3 1 2-3.4-2-1.5c.1-.4.1-.8.1-1.2Z")
-      ] %}
-      {% for key, href, label, path in nav_items %}
-      <a class="side-link {{ 'is-active' if active_nav == key else '' }}" href="{{ href }}">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="{{ path }}"/></svg>
-        <span>{{ label }}</span>
-        {% if key == "tasks" and review_pending_count %}
-        <span class="side-badge" aria-label="{{ review_pending_count }} 篇待审阅">{{ review_pending_count }}</span>
-        {% endif %}
-      </a>
-      {% endfor %}
+      <div class="nav-group">
+        <a class="side-link {{ 'is-active' if active_nav == 'home' else '' }}" href="/">
+          <span class="nav-glyph"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 10.5 12 3l8.5 7.5M6 9.2V20h12V9.2"/></svg></span>
+          <span>首页</span>
+        </a>
+        <a class="side-link {{ 'is-active' if active_nav == 'overview' else '' }}" href="/overview">
+          <span class="nav-glyph"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5h16M5 15.5l4-4.5 3.4 2.6L20 7"/></svg></span>
+          <span>运营总览</span>
+        </a>
+      </div>
+
+      <p class="nav-caption">内容管理</p>
+      <div class="nav-group">
+        <a class="side-link {{ 'is-active' if active_nav == 'publish' else '' }}" href="/">
+          <span class="nav-glyph"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0 4 4m-4-4L8 8M4.5 15v3A1.5 1.5 0 0 0 6 19.5h12a1.5 1.5 0 0 0 1.5-1.5v-3"/></svg></span>
+          <span>发布中心</span>
+        </a>
+        <a class="side-link {{ 'is-active' if active_nav == 'calendar' else '' }}" href="/calendar">
+          <span class="nav-glyph"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v14H4Zm0 4.5h16M8.5 3.5V7m7-3.5V7"/></svg></span>
+          <span>内容日历</span>
+        </a>
+        <a class="side-link {{ 'is-active' if active_nav == 'media' else '' }}" href="/media">
+          <span class="nav-glyph"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5h6l2 2.4h8v9.6H4Z"/></svg></span>
+          <span>素材库</span>
+        </a>
+        <a class="side-link {{ 'is-active' if active_nav == 'drafts' else '' }}" href="/drafts">
+          <span class="nav-glyph"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h14v15H5Zm0 4h14M8.5 12.5h7m-7 3.5h4.5"/></svg></span>
+          <span>草稿箱</span>
+          {% if review_pending_count %}<span class="side-badge" aria-label="{{ review_pending_count }} 篇待审阅">{{ review_pending_count }}</span>{% endif %}
+        </a>
+        <a class="side-link {{ 'is-active' if active_nav == 'scripts' else '' }}" href="/scripts">
+          <span class="nav-glyph"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 8.5 6.5 12l3.5 3.5m4-7L17.5 12 14 15.5"/></svg></span>
+          <span>脚本生成</span>
+        </a>
+        <a class="side-link {{ 'is-active' if active_nav == 'tasks' else '' }}" href="/tasks">
+          <span class="nav-glyph"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 4.5 19 9 8.5 19.5 4 20l.5-4.5Zm2 2 1.5 1.5"/></svg></span>
+          <span>AI 写稿</span>
+        </a>
+        <a class="side-link {{ 'is-active' if active_nav == 'topics' else '' }}" href="/topics">
+          <span class="nav-glyph"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 1 3.4 10.9c-.6.5-.9 1.1-.9 1.9v.7h-5v-.7c0-.8-.3-1.4-.9-1.9A6 6 0 0 1 12 3Zm-2.4 17h4.8"/></svg></span>
+          <span>选题中心</span>
+        </a>
+      </div>
+
+      <p class="nav-caption">渠道与账号</p>
+      <div class="nav-group">
+        {% for channel in channels_nav %}
+        <a class="side-link {{ 'is-active' if active_nav == 'channel-' ~ channel.key else '' }}" href="/channels/{{ channel.key }}">
+          <span class="nav-channel is-{{ channel.key }}" aria-hidden="true">{{ channel.glyph }}</span>
+          <span>{{ channel.label }}</span>
+        </a>
+        {% endfor %}
+        <a class="side-link {{ 'is-active' if active_nav == 'channels' else '' }}" href="/channels">
+          <span class="nav-glyph"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm7.4-3c0-.4 0-.8-.1-1.2l2-1.5-2-3.4-2.3 1a7.6 7.6 0 0 0-2-1.2L14.6 3h-4l-.4 2.5a7.6 7.6 0 0 0-2 1.2l-2.3-1-2 3.4 2 1.5a7.4 7.4 0 0 0 0 2.4l-2 1.5 2 3.4 2.3-1a7.6 7.6 0 0 0 2 1.2l.4 2.5h4l.4-2.5a7.6 7.6 0 0 0 2-1.2l2.3 1 2-3.4-2-1.5c.1-.4.1-.8.1-1.2Z"/></svg></span>
+          <span>渠道管理</span>
+        </a>
+      </div>
+
+      <p class="nav-caption">数据分析</p>
+      <div class="nav-group">
+        <a class="side-link {{ 'is-active' if active_nav == 'data' else '' }}" href="/data">
+          <span class="nav-glyph"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10m5.3 10V4m5.4 16v-8m5.3 8V7"/></svg></span>
+          <span>数据总览</span>
+        </a>
+        <a class="side-link {{ 'is-active' if active_nav == 'performance' else '' }}" href="/performance">
+          <span class="nav-glyph"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5 10 13l3.5 3.5L20 9.5M20 9.5h-4.5m4.5 0V14"/></svg></span>
+          <span>内容表现</span>
+        </a>
+        <a class="side-link {{ 'is-active' if active_nav == 'fans' else '' }}" href="/fans">
+          <span class="nav-glyph"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 20v-1.6a4 4 0 0 0-4-4h-5a4 4 0 0 0-4 4V20M9 10.8a3.6 3.6 0 1 0 0-7.2 3.6 3.6 0 0 0 0 7.2Zm6.5-.4a3 3 0 1 0-1.7-5.5M17.5 14.5a4 4 0 0 1 4 4V20"/></svg></span>
+          <span>粉丝分析</span>
+        </a>
+        <a class="side-link {{ 'is-active' if active_nav == 'compare' else '' }}" href="/compare">
+          <span class="nav-glyph"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 4v16m7-16v16M3.5 8.5l5-4.5 5 4.5m2 7 5-4.5-5-4.5"/></svg></span>
+          <span>平台对比</span>
+        </a>
+      </div>
+
+      <p class="nav-caption">团队协作</p>
+      <div class="nav-group">
+        <a class="side-link {{ 'is-active' if active_nav == 'team' else '' }}" href="/team">
+          <span class="nav-glyph"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.5 20v-1.6a4 4 0 0 0-4-4h-5a4 4 0 0 0-4 4V20M10 10.8a3.6 3.6 0 1 0 0-7.2 3.6 3.6 0 0 0 0 7.2Zm6.5 0a3 3 0 1 0-1.7-5.5M20.5 20v-1.6a4 4 0 0 0-2.6-3.7"/></svg></span>
+          <span>团队成员</span>
+        </a>
+        <a class="side-link {{ 'is-active' if active_nav == 'approvals' else '' }}" href="/approvals">
+          <span class="nav-glyph"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 12.5 11.5 15 16 9.5M5 4.5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-13a1 1 0 0 1 1-1Z"/></svg></span>
+          <span>审批流程</span>
+          {% if approvals_badge %}<span class="side-badge is-warn" aria-label="{{ approvals_badge }} 项待处理">{{ approvals_badge }}</span>{% endif %}
+        </a>
+        <a class="side-link {{ 'is-active' if active_nav == 'logs' else '' }}" href="/logs">
+          <span class="nav-glyph"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h14v15H5Zm3 4h8m-8 3.5h8m-8 3.5h5"/></svg></span>
+          <span>操作日志</span>
+        </a>
+      </div>
     </nav>
 
-    <div class="side-agent" aria-hidden="true">
-      <span class="side-agent-bot">
-        <svg viewBox="0 0 48 48" role="img">
-          <rect x="8" y="14" width="32" height="24" rx="9" class="bot-body"/>
-          <circle cx="18.5" cy="25.5" r="3.2" class="bot-eye"/>
-          <circle cx="29.5" cy="25.5" r="3.2" class="bot-eye"/>
-          <circle cx="17.4" cy="24.6" r="1.1" class="bot-glint"/>
-          <circle cx="28.4" cy="24.6" r="1.1" class="bot-glint"/>
-          <path d="M20 31.5c2.4 1.8 5.6 1.8 8 0" class="bot-smile"/>
-          <line x1="24" y1="9" x2="24" y2="14" class="bot-antenna"/>
-          <circle cx="24" cy="7.5" r="2.4" class="bot-antenna-dot"/>
-          <rect x="1" y="22" width="4.5" height="9" rx="2.2" class="bot-ear"/>
-          <rect x="42.5" y="22" width="4.5" height="9" rx="2.2" class="bot-ear"/>
-        </svg>
+    <div class="side-plan" aria-label="版本信息">
+      <span class="side-plan-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M5 18 4 8.5 9 11l3-5.5L15 11l5-2.5L19 18Zm0 0h14"/></svg>
       </span>
-      <p class="side-agent-title">AGENT 正在为你工作</p>
-      <p class="side-agent-sub">智能规划 · 自动执行</p>
-      <p class="side-agent-foot">让运营更简单</p>
+      <div class="side-plan-copy">
+        <strong>数据驱动版</strong>
+        <small>本地完整能力已启用</small>
+      </div>
+      <a class="side-plan-link" href="/settings" aria-label="查看系统设置">›</a>
     </div>
   </aside>
 
   <div class="main-column">
     <header class="topbar">
-      <form class="topbar-search" role="search" action="/tasks" method="get" aria-label="站内搜索">
+      <form class="topbar-search" role="search" action="/" method="get" aria-label="全局搜索">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
         <input type="search" name="q" value="{{ request.query_params.get('q', '') }}"
-               placeholder="搜索文章、选题、粉丝或功能" aria-label="搜索文章、选题、粉丝或功能">
+               placeholder="搜索内容、素材、话题或发布记录" aria-label="搜索内容、素材、话题或发布记录">
         <kbd aria-hidden="true">⌘ K</kbd>
       </form>
 
       <div class="topbar-status">
-        <span class="connect-chip {{ 'is-ready' if wechat_status.configured else 'is-muted' }}">
-          <span class="status-dot" aria-hidden="true"></span>
-          {{ "已连接公众号" if wechat_status.configured else "等待配置公众号" }}
-        </span>
-        {% if account_name %}
-        <div class="account-chip" aria-label="当前公众号">
-          <span class="account-avatar" aria-hidden="true">{{ account_name[:1] }}</span>
-          <span class="account-copy">
-            <strong>{{ account_name }}</strong>
-            <small>订阅号 · {{ wechat_status.label }}</small>
-          </span>
-        </div>
+        {% if request.state.space_id %}
+        <a class="connect-chip" href="/space" title="保存恢复码或恢复已有空间">我的空间 · {{ request.state.space_id[:8]|upper }}</a>
         {% endif %}
-        <a class="bell-chip" href="/tasks" aria-label="通知：{{ review_pending_count }} 篇文章待人工审阅">
+        <a class="bell-chip" href="/approvals" aria-label="通知：{{ approvals_badge or 0 }} 项待处理">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 15.5V11a6 6 0 1 0-12 0v4.5L4.5 18h15Zm-4.5 2.5a1.8 1.8 0 0 1-3 0"/></svg>
-          {% if review_pending_count %}<span class="bell-dot" aria-hidden="true"></span>{% endif %}
+          {% if approvals_badge %}<span class="bell-dot" aria-hidden="true"></span>{% endif %}
         </a>
+        <a class="help-chip" href="/docs" aria-label="帮助与 API 文档">?</a>
+        <details class="account-menu">
+          <summary class="account-chip" aria-label="当前用户菜单">
+            <span class="account-avatar" aria-hidden="true">{{ operator_name[:1] }}</span>
+            <span class="account-copy">
+              <strong>{{ operator_name }}</strong>
+              <small>{{ team_name }}</small>
+            </span>
+            <span class="account-caret" aria-hidden="true">⌄</span>
+          </summary>
+          <div class="account-dropdown">
+            <a href="/settings">系统设置</a>
+            <a href="/workflow">Agent 工作流</a>
+            <a href="/schedule">定时提醒</a>
+            <a href="/docs" target="_blank" rel="noopener">API 文档</a>
+          </div>
+        </details>
       </div>
     </header>
 
@@ -113,6 +181,15 @@
     {% endif %}
 
     <main class="page">
+      <nav class="breadcrumb" aria-label="页面位置">
+        {% for label, href in breadcrumb %}
+        {% if href %}<a href="{{ href }}">{{ label }}</a>{% else %}<span aria-current="page">{{ label }}</span>{% endif %}
+        {% if not loop.last %}<span class="breadcrumb-sep" aria-hidden="true">/</span>{% endif %}
+        {% endfor %}
+      </nav>
+      {% if request.state.new_space %}
+      <p class="space-notice" role="status">已为此浏览器创建独立空空间。<a href="/space">保存恢复码或恢复已有空间 →</a></p>
+      {% endif %}
       {% block content %}{% endblock %}
     </main>
 
@@ -127,7 +204,7 @@
       </div>
       <div>
         <span class="safety-icon" aria-hidden="true">◇</span>
-        <p><strong>文章配图</strong>AI 生图或自由授权找图，来源可追溯</p>
+        <p><strong>内容合规</strong>全渠道记录仅作登记与复盘，不代替平台后台操作</p>
       </div>
       <a href="/docs">API 文档 <span aria-hidden="true">↗</span></a>
     </footer>
@@ -139,7 +216,7 @@
   <button class="drawer-backdrop" type="button" data-close-drawer aria-label="关闭创建任务面板"></button>
   <div class="drawer-panel" tabindex="-1">
     <div class="drawer-head">
-      <div><p class="section-label">NEW CONTENT</p><h2 id="task-drawer-title">创建内容任务</h2></div>
+      <div><p class="section-label">NEW CONTENT</p><h2 id="task-drawer-title">创建写稿任务</h2></div>
       <button class="drawer-close" type="button" data-close-drawer aria-label="关闭">×</button>
     </div>
     <form id="task-form" class="drawer-form">
@@ -160,10 +237,50 @@
       </fieldset>
       <label class="field-label" for="request">本次要解决什么内容问题？</label>
       <textarea id="request" name="request" rows="6" required minlength="3"
-        placeholder="例如：面向有 Python 基础的开发者，解释 Agent 工程中的恢复机制"></textarea>
+        placeholder="例如：面向 AI 应用开发者，解释 Agent 工程中的恢复机制"></textarea>
       <p class="field-help">系统会保存每个节点的产物；正式发布不会自动执行。</p>
       <p class="form-error" data-form-error role="alert"></p>
       <button class="button button-primary button-full" type="submit">创建内容任务</button>
+    </form>
+  </div>
+</div>
+
+<div class="drawer" id="post-drawer" role="dialog" aria-modal="true"
+     aria-labelledby="post-drawer-title" aria-hidden="true">
+  <button class="drawer-backdrop" type="button" data-close-drawer aria-label="关闭创建发布面板"></button>
+  <div class="drawer-panel" tabindex="-1">
+    <div class="drawer-head">
+      <div><p class="section-label">NEW PUBLISH</p><h2 id="post-drawer-title">创建发布</h2></div>
+      <button class="drawer-close" type="button" data-close-drawer aria-label="关闭">×</button>
+    </div>
+    <form id="post-form" class="drawer-form">
+      <label class="field-label" for="post-channel">发布渠道</label>
+      <select id="post-channel" name="channel" required>
+        {% for option in channels_nav %}
+        <option value="{{ option.key }}">{{ option.label }}</option>
+        {% endfor %}
+      </select>
+      <label class="field-label" for="post-title">标题</label>
+      <input id="post-title" name="title" type="text" required maxlength="100"
+             placeholder="例如：Agent 工作流从 0 到 1 实操" autocomplete="off">
+      <label class="field-label" for="post-type">内容形态</label>
+      <input id="post-type" name="content_type" type="text" required maxlength="20"
+             placeholder="例如：短视频 / 图文笔记 / 深度文章" autocomplete="off">
+      <label class="field-label" for="post-excerpt">内容摘要</label>
+      <textarea id="post-excerpt" name="excerpt" rows="3" maxlength="200"
+        placeholder="一句话概括这条内容（选填）"></textarea>
+      <label class="field-label" for="post-status">保存状态</label>
+      <select id="post-status" name="status">
+        <option value="draft">草稿</option>
+        <option value="pending_review">待审核</option>
+        <option value="scheduled">待发布（定时）</option>
+        <option value="published">已发布（人工登记）</option>
+      </select>
+      <label class="field-label" for="post-scheduled-at">计划发布时间（待发布时必填）</label>
+      <input id="post-scheduled-at" name="scheduled_at" type="datetime-local">
+      <p class="field-help">平台记录用于统一登记与复盘；正式发布始终在各平台后台由人工完成。</p>
+      <p class="form-error" data-post-error role="alert"></p>
+      <button class="button button-primary button-full" type="submit">保存发布记录</button>
     </form>
   </div>
 </div>
@@ -174,7 +291,7 @@
   <div class="drawer-panel" tabindex="-1">
     <div class="drawer-head">
       <div><p class="section-label">DATA IMPORT</p><h2 id="import-drawer-title">导入运营数据</h2></div>
-      <button class="drawer-close" type="button" data-close-drawer aria-label="关闭">×</button>
+      <button class="drawer-close" type="button" data-close-drawer aria-label="关闭导入数据面板">×</button>
     </div>
     <form id="import-form" class="drawer-form" enctype="multipart/form-data">
       <label class="file-drop" for="metrics-file">
@@ -191,7 +308,7 @@
       <p class="form-error" data-form-error role="alert"></p>
       <button class="button button-primary button-full" type="submit">导入并刷新指标</button>
       <button class="button button-secondary button-full" type="button" data-import-demo>
-        导入虚构示例数据（体验用）
+        导入示例数据（体验用）
       </button>
     </form>
   </div>
@@ -199,14 +316,14 @@
 
 <dialog class="preview-dialog" id="preview-dialog" aria-labelledby="preview-title">
   <div class="preview-head">
-    <div><p class="section-label">WECHAT PREVIEW</p><h2 id="preview-title">微信文章预览</h2></div>
+    <div><p class="section-label">CONTENT PREVIEW</p><h2 id="preview-title">内容预览</h2></div>
     <div class="preview-head-actions">
       <button class="preview-size-toggle" type="button" data-toggle-preview-size
               aria-label="放大预览" aria-pressed="false"></button>
       <button class="drawer-close" type="button" data-close-preview aria-label="关闭预览">×</button>
     </div>
   </div>
-  <iframe id="preview-frame" title="微信文章内容预览" sandbox="allow-popups"></iframe>
+  <iframe id="preview-frame" title="文章内容预览" sandbox="allow-popups allow-same-origin"></iframe>
 </dialog>
 
 <dialog class="preview-dialog title-dialog" id="title-dialog" aria-labelledby="title-dialog-title">

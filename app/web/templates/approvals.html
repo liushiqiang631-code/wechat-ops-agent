@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="approvals-page" aria-labelledby="approvals-title">
+  <header class="page-head">
+    <div class="page-head-copy">
+      <h1 id="approvals-title">审批流程</h1>
+      <p>公众号文章的人工审阅与全渠道内容的发布确认都在这里完成。</p>
+    </div>
+  </header>
+
+  <div class="approvals-grid">
+    <section class="card" aria-labelledby="approval-tasks-title">
+      <div class="card-head">
+        <h2 id="approval-tasks-title">待审阅文章 <span class="rail-count">{{ approvals_page.task_count }}</span></h2>
+      </div>
+      <ul class="todo-list approvals-list">
+        {% for row in approvals_page.tasks %}
+        <li>
+          <a href="/review/{{ row.task_id }}">
+            <span class="channel-glyph is-wechat" aria-hidden="true">公</span>
+            <span class="todo-copy">
+              <strong>{{ row.title | truncate(40) }}</strong>
+              <small>{{ row.status_label }} · 更新于 {{ row.updated_label }}</small>
+            </span>
+            <span class="btn btn-mini">去审阅</span>
+          </a>
+        </li>
+        {% else %}
+        <li class="todo-empty">没有等待人工审阅的文章。</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section class="card" aria-labelledby="approval-posts-title">
+      <div class="card-head">
+        <h2 id="approval-posts-title">待确认发布 <span class="rail-count">{{ approvals_page.post_count }}</span></h2>
+      </div>
+      <ul class="todo-list approvals-list">
+        {% for row in approvals_page.posts %}
+        <li class="approval-post">
+          <span class="channel-glyph" style="--channel-color: {{ row.channel_color }}" aria-hidden="true">{{ {'xiaohongshu': '红', 'shipinhao': '视', 'douyin': '抖', 'kuaishou': '快', 'wechat': '公'}[row.channel] }}</span>
+          <span class="todo-copy">
+            <strong>{{ row.title | truncate(36) }}</strong>
+            <small>{{ row.channel_label }} · {{ row.content_type }} · {{ row.status_label }}</small>
+          </span>
+          {% if row.can_retry %}
+          <button class="btn btn-mini" type="button" data-post-retry data-post-id="{{ row.id }}">重试发布</button>
+          {% else %}
+          <button class="btn btn-mini btn-primary-mini" type="button" data-post-publish data-post-id="{{ row.id }}">确认发布</button>
+          {% endif %}
+        </li>
+        {% else %}
+        <li class="todo-empty">没有待确认的渠道内容。</li>
+        {% endfor %}
+      </ul>
+    </section>
+  </div>
+
+  <section class="card" aria-labelledby="approval-note-title">
+    <div class="card-head"><h2 id="approval-note-title">审批边界</h2></div>
+    <ul class="config-list">
+      <li>「确认发布」是把该内容登记为已发布，用于统一统计与复盘；实际发布动作始终由人工在各平台后台完成。</li>
+      <li>自动文章修订最多两轮；未通过审核的内容必须由人工处理。</li>
+      <li>系统不提供公众号正式发布或群发接口。</li>
+    </ul>
+  </section>
+</section>
+{% endblock %}

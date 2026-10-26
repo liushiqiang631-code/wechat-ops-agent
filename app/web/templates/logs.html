@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="logs-page" aria-labelledby="logs-title">
+  <header class="page-head">
+    <div class="page-head-copy">
+      <h1 id="logs-title">操作日志</h1>
+      <p>系统内的关键操作流水：任务创建、脚本生成、发布登记与效果回流。</p>
+    </div>
+  </header>
+
+  <section class="card" aria-labelledby="logs-table-title">
+    <div class="card-head">
+      <h2 id="logs-table-title">最近操作</h2>
+      <span class="rail-count">{{ logs_page.total }}</span>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr><th>时间</th><th>类型</th><th>内容</th><th>详情</th></tr>
+        </thead>
+        <tbody>
+          {% for row in logs_page.rows %}
+          <tr>
+            <td><small>{{ row.time_label }}</small></td>
+            <td><span class="status-pill is-neutral">{{ row.kind_label }}</span></td>
+            <td class="cell-title">
+              {% if row.channel %}<span class="channel-tag" style="--channel-color: {{ row.channel_color }}"><span class="channel-glyph" aria-hidden="true">{{ {'xiaohongshu': '红', 'shipinhao': '视', 'douyin': '抖', 'kuaishou': '快', 'wechat': '公'}[row.channel] }}</span>{{ row.channel_label }}</span>{% endif %}
+              {{ row.title }}
+            </td>
+            <td><small>{{ row.detail or "—" }}</small></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="4" class="cell-empty">暂无操作日志</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</section>
+{% endblock %}

@@ -10,11 +10,16 @@
   </div>
 
   <p class="page-summary">
-    配图能力在任务运行时自动决策：优先 AI 生图，其次使用可商用授权的网上找图；
-    来源、作者与授权会随素材一并记录。
+    优先从农业知识库图库选择与作物、产品和主题相关的图片，不足时再使用 AI 生图或授权找图。
+    图片出处与使用信息会随素材一并记录。
   </p>
 
   <div class="image-cap-grid">
+    <div class="image-cap-card {{ 'is-ready' if knowledge_base.enabled else '' }}">
+      <h3>农业知识库与图库优先</h3>
+      <p>{{ '已启用：写作先查本地农技、产品和案例资料，配图先查文件名与文件夹。' if knowledge_base.enabled else '尚未启用知识库连接。' }}</p>
+      <a href="{{ knowledge_base.url }}/gallery.html" target="_blank" rel="noopener noreferrer">打开知识库图库</a>
+    </div>
     <div class="image-cap-card {{ 'is-ready' if image_provider.ai_generation_available else '' }}">
       <h3>AI 生图</h3>
       <p>

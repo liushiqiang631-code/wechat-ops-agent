@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="channels-page" aria-labelledby="channels-title">
+  <header class="page-head">
+    <div class="page-head-copy">
+      <h1 id="channels-title">渠道管理</h1>
+      <p>统一维护各平台账号信息，掌握每个渠道的近 7 天表现。</p>
+    </div>
+    <div class="page-head-actions">
+      <button class="btn btn-primary" type="button" data-open-drawer="post-drawer">
+        <span aria-hidden="true">＋</span> 创建发布
+      </button>
+    </div>
+  </header>
+
+  <div class="channel-grid">
+    {% for row in channels_page.rows %}
+    <article class="card channel-card is-{{ row.key }}">
+      <div class="channel-card-head">
+        <span class="channel-glyph is-{{ row.key }}" aria-hidden="true">{{ {'xiaohongshu': '红', 'shipinhao': '视', 'douyin': '抖', 'kuaishou': '快', 'wechat': '公'}[row.key] }}</span>
+        <div class="channel-card-copy">
+          <h2>{{ row.channel_label }}</h2>
+          <p>{% if row.connected %}{{ row.display_name }} · {{ row.account_type }}{% else %}待接入 · 可先手动登记发布记录{% endif %}</p>
+        </div>
+        <span class="status-pill is-{{ 'success' if row.connected and row.status == 'active' else 'neutral' }}">{{ row.status_label }}</span>
+      </div>
+      <dl class="channel-card-stats">
+        <div><dt>粉丝数</dt><dd>{{ row.followers_label }}</dd></div>
+        <div><dt>近7天浏览</dt><dd>{{ row.views_7d }}</dd></div>
+        <div><dt>环比</dt><dd class="is-{{ row.change_direction }}">{{ row.change_text }}</dd></div>
+      </dl>
+      <div class="channel-card-actions">
+        <a class="btn btn-mini" href="/channels/{{ row.key }}">查看渠道</a>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+
+  <section class="card" aria-labelledby="channel-note-title">
+    <div class="card-head"><h2 id="channel-note-title">使用说明</h2></div>
+    <ul class="config-list">
+      <li>各渠道默认未接入：粉丝与浏览数据留空占位，接入平台数据源或使用「创建发布」手动登记后自动统计。</li>
+      <li>发布记录用于统一登记、审核与复盘；正式发布始终在各平台后台由人工完成。</li>
+      <li>公众号写稿由 Agent 流水线完成；草稿上传需在系统设置中显式开启。</li>
+      <li>如需演示完整界面，可在 .env 中设置 SEED_DEMO_DATA=true 生成一套标记为 demo 的示例数据。</li>
+    </ul>
+  </section>
+</section>
+{% endblock %}

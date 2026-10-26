@@ -6,7 +6,12 @@ from pathlib import Path
 from typing import Any
 
 from app.container import ApplicationContainer
-from app.domain.enums import TASK_RUN_IN_FLIGHT_STATUSES, TaskMode, TaskStatus
+from app.domain.enums import (
+    TASK_RUN_IN_FLIGHT_STATUSES,
+    ChannelPostStatus,
+    TaskMode,
+    TaskStatus,
+)
 from app.domain.models import ArticleDocument, AssetManifest, MetricRecord, TaskRecord
 from app.services.analytics.metrics import calculate_windows
 from app.services.analytics.quality import build_quality_report
@@ -221,7 +226,6 @@ def overview_kpis(
     generated_today = sum(1 for task in tasks if task.created_at.date() == today)
     generated_yesterday = sum(1 for task in tasks if task.created_at.date() == yesterday)
     has_task_history = generated_today > 0 or generated_yesterday > 0
-    gen_direction, gen_change = _change(generated_today, generated_yesterday)
 
     drafted_today = sum(1 for item in receipts if item.created_at.date() == today)
     drafted_yesterday = sum(1 for item in receipts if item.created_at.date() == yesterday)
@@ -256,9 +260,12 @@ def overview_kpis(
             "value": generated_today,
             "display_value": str(generated_today) if has_task_history else "0",
             "has_data": has_task_history,
-            "change_direction": gen_direction if has_task_history else "neutral",
-            "change_text": gen_change if has_task_history else "今天还没有创建任务",
-            "period": "较昨日",
+            "change_direction": "neutral",
+            # 任务量基数小，百分比环比（如 0/-1=-100%）容易误导，改用绝对数。
+            "change_text": (
+                f"昨日创建 {generated_yesterday} 篇" if has_task_history else "今天还没有创建任务"
+            ),
+            "period": "",
         },
         {
             "key": "drafts",
@@ -498,6 +505,11 @@ def cover_gallery(container: ApplicationContainer) -> dict[str, object]:
         for item in manifest.items:
             if item.status != "ready" or item.kind not in {"cover", "concept"}:
                 continue
+            created_at = item.created_at
+            if created_at.tzinfo is None:
+                # Legacy records used local wall time without an offset.
+                created_at = created_at.replace(tzinfo=container.settings.timezone)
+            created_at = created_at.astimezone(container.settings.timezone)
             recent_assets.append(
                 {
                     "task_id": task.id,
@@ -505,9 +517,9 @@ def cover_gallery(container: ApplicationContainer) -> dict[str, object]:
                     "caption": item.caption or item.query_or_prompt or item.kind,
                     "provider": item.provider or item.source or "deterministic",
                     "url": f"/api/v1/tasks/{task.id}/assets/{item.asset_id}",
-                    "created_at": item.created_at,
-                    "created_iso": item.created_at.isoformat(timespec="minutes"),
-                    "created_label": item.created_at.strftime("%m-%d %H:%M"),
+                    "created_at": created_at,
+                    "created_iso": created_at.isoformat(timespec="minutes"),
+                    "created_label": created_at.strftime("%m-%d %H:%M"),
                 }
             )
         if len(recent_assets) >= 12:
@@ -858,6 +870,15 @@ def _greeting(now: datetime) -> str:
     return "晚上好"
 
 
+CHANNEL_NAV = [
+    {"key": "xiaohongshu", "label": "小红书", "glyph": "红"},
+    {"key": "shipinhao", "label": "视频号", "glyph": "视"},
+    {"key": "douyin", "label": "抖音", "glyph": "抖"},
+    {"key": "kuaishou", "label": "快手", "glyph": "快"},
+    {"key": "wechat", "label": "公众号", "glyph": "公"},
+]
+
+
 def _base_context(container: ApplicationContainer, *, reference: datetime) -> dict[str, Any]:
     raw_tasks = container.tasks.list(limit=20)
     views = [task_view(task) for task in raw_tasks]
@@ -868,8 +889,21 @@ def _base_context(container: ApplicationContainer, *, reference: datetime) -> di
     review_pending = sum(
         1 for task in raw_tasks if task.status in {TaskStatus.FORMATTED, TaskStatus.NEEDS_HUMAN}
     )
+    pending_posts = sum(
+        1
+        for post in container.channels.list_posts(limit=200)
+        if post.status in {ChannelPostStatus.PENDING_REVIEW, ChannelPostStatus.FAILED}
+    )
     return {
         "account_name": container.settings.wechat_account_name,
+        "operator_name": container.settings.operator_name,
+        "team_name": container.settings.team_name,
+        "channels_nav": CHANNEL_NAV,
+        "approvals_badge": review_pending + pending_posts,
+        "knowledge_base": {
+            "enabled": container.settings.knowledge_base_enabled,
+            "url": container.settings.knowledge_base_public_url,
+        },
         "tasks": raw_tasks,
         "task_views": views,
         "pending_task_count": pending_count,

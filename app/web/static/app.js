@@ -123,9 +123,9 @@ document.addEventListener("keydown", (event) => {
 const taskForm = document.querySelector("#task-form");
 const requestField = document.querySelector("#request");
 const modePlaceholders = {
-  fixed_topic: "例如：面向有 Python 基础的开发者，解释 Agent 工程中的恢复机制",
+  fixed_topic: "例如：面向 AI 应用开发者，解释 Agent 工程中的恢复机制",
   data_driven_article: "例如：根据近 30 天数据，找出值得继续深挖的选题并生成文章",
-  weekly_plan: "例如：为开发者 Agent 账号规划下周 5 篇内容，兼顾增长与专业深度"
+  weekly_plan: "例如：为公众号规划下周 5 篇内容，覆盖模型评测、实战教程与行业观察"
 };
 
 taskForm?.addEventListener("change", (event) => {
@@ -1182,9 +1182,9 @@ if (articleForm) {
  * 总览页：配图面板标签页
  * ------------------------------------------------------------------ */
 
-document.querySelectorAll(".panel [data-tab]").forEach((tab) => {
+document.querySelectorAll(".panel [data-tab], .card [data-tab]").forEach((tab) => {
   tab.addEventListener("click", () => {
-    const panel = tab.closest(".panel");
+    const panel = tab.closest(".panel, .card");
     if (!panel) return;
     panel.querySelectorAll("[data-tab]").forEach((node) => {
       const active = node === tab;
@@ -1205,7 +1205,7 @@ document.querySelectorAll(".panel [data-tab]").forEach((tab) => {
 
 document.querySelectorAll("[data-range]").forEach((button) => {
   button.addEventListener("click", () => {
-    const box = button.closest(".panel");
+    const box = button.closest(".panel, .card");
     if (!box) return;
     box.querySelectorAll("[data-range]").forEach((node) => {
       const active = node === button;
@@ -1246,3 +1246,405 @@ if (searchForm && searchInput && window.location.pathname === "/tasks") {
 
 pollTaskSteps();
 loadGenui();
+
+/* ------------------------------------------------------------------ *
+ * 全域内容运营平台：发布记录 / 渠道 / 脚本 交互
+ * ------------------------------------------------------------------ */
+
+/* ⌘K / Ctrl+K 聚焦全局搜索 */
+document.addEventListener("keydown", (event) => {
+  if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+    event.preventDefault();
+    document.querySelector(".topbar-search input")?.focus();
+  }
+});
+
+/* 筛选下拉：变更即提交 */
+document.querySelectorAll("[data-auto-submit]").forEach((node) => {
+  node.addEventListener("change", () => node.form?.submit());
+});
+
+/* 发布记录：确认发布 / 重试 / 效果回流 / 删除 */
+async function postAction(postId, path, busyLabel, doneLabel) {
+  const actionKey = `post:${path}:${postId}`;
+  if (pendingActions.has(actionKey)) return;
+  pendingActions.add(actionKey);
+  try {
+    const response = await fetch(`/api/v1/channel-posts/${encodeURIComponent(postId)}${path}`, {
+      method: path ? "POST" : "DELETE"
+    });
+    const payload = await readPayload(response);
+    if (!response.ok && response.status !== 204) {
+      throw new Error(errorMessage(payload, "操作失败"));
+    }
+    showToast(doneLabel);
+    window.setTimeout(() => window.location.reload(), 500);
+  } catch (error) {
+    showToast(error.message || "操作失败，请稍后重试。", "error");
+    pendingActions.delete(actionKey);
+  }
+}
+
+document.querySelectorAll("[data-post-publish]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const postId = button.dataset.postId;
+    if (window.confirm("确认将该内容登记为已发布？实际发布请在各平台后台由人工完成。")) {
+      postAction(postId, "/publish", "发布中…", "已登记为已发布");
+    }
+  });
+});
+
+document.querySelectorAll("[data-post-retry]").forEach((button) => {
+  button.addEventListener("click", () => {
+    postAction(button.dataset.postId, "/retry", "提交中…", "已重新进入待审核");
+  });
+});
+
+document.querySelectorAll("[data-post-metrics]").forEach((button) => {
+  button.addEventListener("click", async () => {
+    const postId = button.dataset.postId;
+    const views = window.prompt("回流浏览量", "0");
+    if (views === null) return;
+    const likes = window.prompt("回流点赞数", "0") ?? "0";
+    const comments = window.prompt("回流评论数", "0") ?? "0";
+    const body = {
+      views: Number.parseInt(views, 10) || 0,
+      likes: Number.parseInt(likes, 10) || 0,
+      comments: Number.parseInt(comments, 10) || 0
+    };
+    const actionKey = `metrics:${postId}`;
+    if (pendingActions.has(actionKey)) return;
+    pendingActions.add(actionKey);
+    try {
+      const response = await fetch(`/api/v1/channel-posts/${encodeURIComponent(postId)}/metrics`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(body)
+      });
+      const payload = await readPayload(response);
+      if (!response.ok) throw new Error(errorMessage(payload, "效果回流失败"));
+      showToast("效果数据已回流");
+      window.setTimeout(() => window.location.reload(), 500);
+    } catch (error) {
+      showToast(error.message || "效果回流失败。", "error");
+    } finally {
+      pendingActions.delete(actionKey);
+    }
+  });
+});
+
+/* 发布详情弹窗 */
+const postDetailDialog = document.querySelector("#post-detail-dialog");
+const postDetailBody = document.querySelector("#post-detail-body");
+
+document.querySelectorAll("[data-post-detail]").forEach((button) => {
+  button.addEventListener("click", () => {
+    let data = {};
+    try {
+      data = JSON.parse(button.dataset.postJson || "{}");
+    } catch (_) {
+      data = {};
+    }
+    if (!postDetailBody) return;
+    postDetailBody.textContent = "";
+    const rows = [
+      ["渠道", data.channel],
+      ["内容形态", data.type],
+      ["分类", data.category || "—"],
+      ["状态", data.status],
+      ["时间", data.time],
+      ["浏览", Number(data.views ?? 0).toLocaleString()],
+      ["点赞", Number(data.likes ?? 0).toLocaleString()],
+      ["评论", Number(data.comments ?? 0).toLocaleString()]
+    ];
+    for (const [label, value] of rows) {
+      const row = document.createElement("div");
+      row.className = "detail-row";
+      const name = document.createElement("span");
+      name.textContent = label;
+      const content = document.createElement("strong");
+      content.textContent = value || "—";
+      row.append(name, content);
+      postDetailBody.append(row);
+    }
+    const title = document.createElement("p");
+    title.className = "detail-title";
+    title.textContent = data.title || "";
+    postDetailBody.prepend(title);
+    if (data.excerpt) {
+      const excerpt = document.createElement("p");
+      excerpt.className = "detail-excerpt";
+      excerpt.textContent = data.excerpt;
+      postDetailBody.append(excerpt);
+    }
+    if (data.error) {
+      const error = document.createElement("p");
+      error.className = "detail-error";
+      error.textContent = data.error;
+      postDetailBody.append(error);
+    }
+    if (data.id) {
+      const actions = document.createElement("div");
+      actions.className = "detail-actions";
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "btn btn-mini btn-plain";
+      remove.textContent = "删除记录";
+      remove.addEventListener("click", () => {
+        if (!window.confirm("确认删除这条发布记录？")) return;
+        postDetailDialog?.close();
+        postAction(data.id, "", "删除中…", "发布记录已删除");
+      });
+      actions.append(remove);
+      postDetailBody.append(actions);
+    }
+    postDetailDialog?.showModal();
+  });
+});
+
+document.querySelector("[data-close-post-detail]")?.addEventListener("click", () => {
+  postDetailDialog?.close();
+});
+
+postDetailDialog?.addEventListener("click", (event) => {
+  if (event.target === postDetailDialog) postDetailDialog.close();
+});
+
+/* 创建发布表单 */
+const postForm = document.querySelector("#post-form");
+
+if (postForm) {
+  const statusSelect = postForm.querySelector("#post-status");
+  const scheduledField = postForm.querySelector("#post-scheduled-at");
+  const contentTypeByChannel = {
+    xiaohongshu: "图文笔记",
+    shipinhao: "产品视频",
+    douyin: "短视频",
+    kuaishou: "短视频",
+    wechat: "深度文章"
+  };
+
+  const syncScheduled = () => {
+    const needsSchedule = statusSelect?.value === "scheduled";
+    scheduledField?.toggleAttribute("required", needsSchedule);
+  };
+  statusSelect?.addEventListener("change", syncScheduled);
+  syncScheduled();
+
+  postForm.querySelector("#post-channel")?.addEventListener("change", (event) => {
+    const typeField = postForm.querySelector("#post-type");
+    if (typeField && !typeField.value && contentTypeByChannel[event.target.value]) {
+      typeField.placeholder = `例如：${contentTypeByChannel[event.target.value]}`;
+    }
+  });
+
+  postForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (pendingActions.has("create-post")) return;
+    const submit = postForm.querySelector('button[type="submit"]');
+    const errorNode = postForm.querySelector("[data-post-error]");
+    const data = new FormData(postForm);
+    const status = String(data.get("status") || "draft");
+    errorNode.textContent = "";
+
+    const scheduledAt = String(data.get("scheduled_at") || "").trim();
+    if (status === "scheduled" && !scheduledAt) {
+      errorNode.textContent = "待发布内容需要填写计划发布时间。";
+      return;
+    }
+
+    const body = {
+      channel: data.get("channel"),
+      content_type: String(data.get("content_type") || "").trim() || "图文",
+      title: String(data.get("title") || "").trim(),
+      excerpt: String(data.get("excerpt") || "").trim(),
+      status,
+      scheduled_at: status === "scheduled" ? new Date(scheduledAt).toISOString() : null,
+      published_at: status === "published" ? new Date().toISOString() : null
+    };
+
+    pendingActions.add("create-post");
+    setBusy(submit, true, "保存中…");
+    try {
+      const response = await fetch("/api/v1/channel-posts", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(body)
+      });
+      const payload = await readPayload(response);
+      if (!response.ok) throw new Error(errorMessage(payload, "保存发布记录失败"));
+      showToast("发布记录已保存");
+      closeDrawer();
+      window.setTimeout(() => window.location.reload(), 500);
+    } catch (error) {
+      errorNode.textContent = error.message || "保存失败，请稍后重试。";
+    } finally {
+      pendingActions.delete("create-post");
+      setBusy(submit, false);
+    }
+  });
+}
+
+/* 脚本生成与转化 */
+const scriptForm = document.querySelector("#script-form");
+
+scriptForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (pendingActions.has("generate-script")) return;
+  const submit = scriptForm.querySelector("[data-script-generate]");
+  const errorNode = scriptForm.querySelector("[data-script-error]");
+  const data = new FormData(scriptForm);
+  errorNode.textContent = "";
+
+  const topic = String(data.get("topic") || "").trim();
+  if (topic.length < 2) {
+    errorNode.textContent = "请先输入视频主题。";
+    return;
+  }
+  const keyPoints = String(data.get("key_points") || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 6);
+
+  const body = {
+    topic,
+    channel: data.get("channel") || "shipinhao",
+    duration_seconds: Number.parseInt(String(data.get("duration_seconds") || "60"), 10),
+    audience: String(data.get("audience") || "").trim() || "关注 AI 效率的职场人",
+    key_points: keyPoints
+  };
+
+  pendingActions.add("generate-script");
+  setBusy(submit, true, "生成中…");
+  try {
+    const response = await fetch("/api/v1/scripts/generate", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(body)
+    });
+    const payload = await readPayload(response);
+    if (!response.ok) throw new Error(errorMessage(payload, "脚本生成失败"));
+    showToast("脚本已生成");
+    window.setTimeout(() => window.location.reload(), 600);
+  } catch (error) {
+    errorNode.textContent = error.message || "脚本生成失败，请稍后重试。";
+  } finally {
+    pendingActions.delete("generate-script");
+    setBusy(submit, false);
+  }
+});
+
+document.querySelectorAll("[data-script-to-article]").forEach((button) => {
+  button.addEventListener("click", async () => {
+    const scriptId = button.dataset.scriptId;
+    const actionKey = `to-article:${scriptId}`;
+    if (!scriptId || pendingActions.has(actionKey)) return;
+    if (!window.confirm("将该脚本交给 AI 扩写成公众号文章？会创建一个写稿任务。")) return;
+    pendingActions.add(actionKey);
+    setBusy(button, true, "创建中…");
+    try {
+      const response = await fetch(`/api/v1/scripts/${encodeURIComponent(scriptId)}/to-article`, {
+        method: "POST"
+      });
+      const payload = await readPayload(response);
+      if (!response.ok) throw new Error(errorMessage(payload, "转写失败"));
+      showToast("写稿任务已创建，到「AI 写稿」页运行即可");
+      window.setTimeout(() => window.location.reload(), 600);
+    } catch (error) {
+      showToast(error.message || "转写失败，请稍后重试。", "error");
+      setBusy(button, false);
+      pendingActions.delete(actionKey);
+    }
+  });
+});
+
+document.querySelectorAll("[data-script-to-post]").forEach((button) => {
+  button.addEventListener("click", async () => {
+    const scriptId = button.dataset.scriptId;
+    const channel = button.dataset.scriptChannel || "shipinhao";
+    const actionKey = `to-post:${scriptId}`;
+    if (!scriptId || pendingActions.has(actionKey)) return;
+    pendingActions.add(actionKey);
+    try {
+      const response = await fetch(`/api/v1/scripts/${encodeURIComponent(scriptId)}/to-post`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({channel, status: "draft"})
+      });
+      const payload = await readPayload(response);
+      if (!response.ok) throw new Error(errorMessage(payload, "保存失败"));
+      showToast("已存为渠道草稿，可在发布中心继续编辑");
+      window.setTimeout(() => window.location.reload(), 600);
+    } catch (error) {
+      showToast(error.message || "保存失败，请稍后重试。", "error");
+    } finally {
+      pendingActions.delete(actionKey);
+    }
+  });
+});
+
+document.querySelectorAll("[data-script-copy]").forEach((button) => {
+  button.addEventListener("click", async () => {
+    const scriptId = button.dataset.scriptId;
+    const actionKey = `copy:${scriptId}`;
+    if (!scriptId || pendingActions.has(actionKey)) return;
+    pendingActions.add(actionKey);
+    try {
+      const response = await fetch("/api/v1/scripts");
+      const scripts = await readPayload(response);
+      if (!response.ok) throw new Error("读取脚本失败");
+      const script = (scripts || []).find((item) => item.id === scriptId);
+      if (!script) throw new Error("脚本不存在");
+      const lines = [script.hook, ""];
+      for (const beat of script.beats || []) {
+        lines.push(`[${beat.time_range}] ${beat.voiceover}`);
+      }
+      lines.push("", script.ending);
+      await navigator.clipboard.writeText(lines.join("\n"));
+      showToast("口播文案已复制");
+    } catch (error) {
+      showToast(error.message || "复制失败。", "error");
+    } finally {
+      pendingActions.delete(actionKey);
+    }
+  });
+});
+
+document.querySelectorAll("[data-script-delete]").forEach((button) => {
+  button.addEventListener("click", async () => {
+    const scriptId = button.dataset.scriptId;
+    if (!scriptId || !window.confirm("确认删除该脚本？")) return;
+    const actionKey = `script-delete:${scriptId}`;
+    if (pendingActions.has(actionKey)) return;
+    pendingActions.add(actionKey);
+    try {
+      const response = await fetch(`/api/v1/scripts/${encodeURIComponent(scriptId)}`, {
+        method: "DELETE"
+      });
+      if (!response.ok && response.status !== 204) {
+        const payload = await readPayload(response);
+        throw new Error(errorMessage(payload, "删除失败"));
+      }
+      showToast("脚本已删除");
+      window.setTimeout(() => window.location.reload(), 400);
+    } catch (error) {
+      showToast(error.message || "删除失败。", "error");
+    } finally {
+      pendingActions.delete(actionKey);
+    }
+  });
+});
+
+/* 发布中心：搜索框即时过滤当前时间线 */
+if (window.location.pathname === "/") {
+  const publishSearch = document.querySelector(".topbar-search input");
+  const postCards = [...document.querySelectorAll("[data-post-card]")];
+  publishSearch?.addEventListener("input", () => {
+    const query = publishSearch.value.trim().toLowerCase();
+    postCards.forEach((card) => {
+      const match = !query || card.textContent.toLowerCase().includes(query);
+      card.style.display = match ? "" : "none";
+    });
+  });
+}

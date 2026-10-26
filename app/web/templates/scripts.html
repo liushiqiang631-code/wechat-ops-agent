@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="scripts-page" aria-labelledby="scripts-title">
+  <header class="page-head">
+    <div class="page-head-copy">
+      <h1 id="scripts-title">脚本生成</h1>
+      <p>把一个主题扩写成可直接拍摄的视频脚本；口播文案可一键转成公众号文章。</p>
+    </div>
+    <div class="page-head-actions">
+      <button class="btn btn-ghost" type="button" data-open-drawer="task-drawer">创建写稿任务</button>
+    </div>
+  </header>
+
+  <div class="scripts-layout">
+    <section class="card script-composer" aria-labelledby="script-form-title">
+      <div class="card-head">
+        <h2 id="script-form-title">生成视频脚本</h2>
+        <span class="config-chip {{ 'is-on' if scripts_page.model.configured else 'is-off' }}">
+          <span class="status-dot" aria-hidden="true"></span>
+          {{ "写作模型：" ~ scripts_page.model.name if scripts_page.model.configured else "写作模型未配置" }}
+        </span>
+      </div>
+      <form id="script-form" class="composer-form">
+        <label class="field-label" for="script-topic">视频主题 <em aria-hidden="true">*</em></label>
+        <input id="script-topic" name="topic" type="text" required maxlength="60"
+               placeholder="例如：3 个提升编码效率的 AI 实用技巧" autocomplete="off">
+
+        <div class="field-row">
+          <div>
+            <label class="field-label" for="script-channel">目标渠道</label>
+            <select id="script-channel" name="channel">
+              {% for option in scripts_page.channel_options %}
+              <option value="{{ option.key }}">{{ option.label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="field-label" for="script-duration">时长（秒）</label>
+            <select id="script-duration" name="duration_seconds">
+              <option value="30">30 秒</option>
+              <option value="60" selected>60 秒</option>
+              <option value="90">90 秒</option>
+              <option value="180">3 分钟</option>
+            </select>
+          </div>
+        </div>
+
+        <label class="field-label" for="script-audience">目标观众</label>
+        <input id="script-audience" name="audience" type="text" maxlength="40"
+               value="关注 AI 效率的职场人" autocomplete="off">
+
+        <label class="field-label" for="script-points">内容要点（每行一条，选填）</label>
+        <textarea id="script-points" name="key_points" rows="3"
+          placeholder="例如：&#10;AI 补全样板代码&#10;AI 生成单元测试"></textarea>
+
+        <p class="form-error" data-script-error role="alert"></p>
+        <div class="composer-actions">
+          <button class="btn btn-primary" type="submit" data-script-generate>
+            <span aria-hidden="true">✦</span> 生成脚本
+          </button>
+        </div>
+        {% if not scripts_page.model.configured %}
+        <p class="field-help">写作模型密钥未配置：生成功能需要在系统设置中配置模型；也可以把已有脚本内容通过下方按钮转化为文章或渠道草稿。</p>
+        {% else %}
+        <p class="field-help">生成会调用写作模型并计费；脚本保存后可转公众号文章或渠道内容。</p>
+        {% endif %}
+      </form>
+    </section>
+
+    <section class="script-list" aria-labelledby="script-list-title">
+      <h2 id="script-list-title" class="visually-hidden">脚本列表</h2>
+      {% for script in scripts_page.rows %}
+      <article class="card script-card" data-script-card="{{ script.id }}">
+        <div class="script-card-head">
+          <span class="channel-tag" style="--channel-color: {{ script.channel_color }}">
+            <span class="channel-glyph" aria-hidden="true">{{ {'xiaohongshu': '红', 'shipinhao': '视', 'douyin': '抖', 'kuaishou': '快', 'wechat': '公'}[script.channel] }}</span>
+            {{ script.channel_label }}
+          </span>
+          <span class="status-pill is-{{ 'success' if script.status == 'converted' else 'neutral' }}">{{ script.status_label }}</span>
+          <small class="script-source">{{ script.source_label }} · {{ script.duration_label }}</small>
+        </div>
+        <h3 class="post-title">{{ script.title }}</h3>
+        <p class="script-hook">「{{ script.hook }}」</p>
+        <ol class="script-beats">
+          {% for beat in script.beats[:4] %}
+          <li>
+            <span class="beat-time">{{ beat.time_range }}</span>
+            <div class="beat-copy">
+              <strong>{{ beat.voiceover | truncate(56) }}</strong>
+              <small>画面：{{ beat.shot | truncate(40) }}</small>
+            </div>
+          </li>
+          {% endfor %}
+          {% if script.beats | length > 4 %}
+          <li class="beat-more">… 共 {{ script.beats | length }} 个分镜</li>
+          {% endif %}
+        </ol>
+        {% if script.article_angle %}
+        <p class="script-angle"><strong>文章化建议</strong>{{ script.article_angle }}</p>
+        {% endif %}
+        <div class="script-actions">
+          {% if script.task_id %}
+          <a class="btn btn-mini" href="/review/{{ script.task_id }}">查看转写的文章</a>
+          {% else %}
+          <button class="btn btn-mini btn-primary-mini" type="button" data-script-to-article data-script-id="{{ script.id }}">
+            转公众号文章
+          </button>
+          {% endif %}
+          <button class="btn btn-mini" type="button" data-script-to-post data-script-id="{{ script.id }}" data-script-channel="{{ script.channel }}">
+            存为渠道草稿
+          </button>
+          <button class="btn btn-mini btn-plain" type="button" data-script-copy data-script-id="{{ script.id }}">复制文案</button>
+          <button class="btn btn-mini btn-plain" type="button" data-script-delete data-script-id="{{ script.id }}">删除</button>
+        </div>
+      </article>
+      {% else %}
+      <div class="empty-state">
+        <h3>还没有视频脚本</h3>
+        <p>在左侧输入主题生成第一个脚本；生成的口播文案可以直接转成公众号文章。</p>
+      </div>
+      {% endfor %}
+    </section>
+  </div>
+</section>
+{% endblock %}

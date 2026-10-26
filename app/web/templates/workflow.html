@@ -108,6 +108,10 @@
       </div>
     </div>
     <div class="image-cap-grid">
+      <div class="image-cap-card {{ 'is-ready' if knowledge_base.enabled else '' }}">
+        <h3>农业知识库优先</h3>
+        <p>{{ '已启用：先查知识库正文与图库，缺少相关素材时再补充外部来源。' if knowledge_base.enabled else '尚未启用知识库连接。' }}</p>
+      </div>
       <div class="image-cap-card {{ 'is-ready' if image_provider.ai_generation_available else '' }}">
         <h3>AI 生图（阿里云百炼 qwen-image-3.0-pro）</h3>
         <p>
