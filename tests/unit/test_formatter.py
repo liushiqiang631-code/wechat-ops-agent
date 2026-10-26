@@ -35,6 +35,42 @@ def sample_article() -> ArticleDocument:
     )
 
 
+def test_structured_markdown_renders_bold_and_does_not_duplicate_heading_prefix():
+    article = sample_article()
+    article.sections = [
+        ArticleSection(type="heading", level=2, content="## 02｜作用机制"),
+        ArticleSection(type="paragraph", content="**抗氧化作用**：保护细胞。"),
+    ]
+    html = render_wechat_html(article)
+    assert "<strong>抗氧化作用</strong>" in html
+    assert "**" not in html
+    assert "##" not in html
+    assert check_html_sentinels(article, html).passed
+
+
+def test_missing_manifest_does_not_render_writer_invented_asset_as_broken_image():
+    article = sample_article()
+    article.sections.append(
+        ArticleSection(type="figure", asset_id="invented-0001", caption="微观机制")
+    )
+    html = resolve_asset_urls(render_wechat_html(article), "task-1", None)
+    assert "<img" not in html
+    assert "配图尚未就绪" in html
+
+
+def test_markdown_emphasis_does_not_enable_raw_html_or_unverified_images():
+    article = sample_article()
+    article.sections = [ArticleSection(type="paragraph", content=(
+        '**重点** <script>alert(1)</script> ![外图](https://example.com/unverified.png) '
+        '[危险](javascript:alert(1))'))]
+    html = render_wechat_html(article)
+    assert '<strong>重点</strong>' in html
+    assert '<script' not in html
+    assert '<img' not in html
+    assert 'href="javascript:' not in html
+    assert '&lt;script&gt;' in html
+
+
 def test_formatter_outputs_safe_wechat_html_with_complete_sentinels():
     article = sample_article()
 
@@ -74,13 +110,15 @@ def test_formatter_deduplicates_model_supplied_title_heading():
     assert html.count("<h1") == 1
 
 
-def test_formatter_limits_figure_width_for_wechat_articles():
+def test_formatter_keeps_figures_compact_and_preserves_proportions():
     article = sample_article()
     article.sections.append(ArticleSection(type="figure", asset_id="img-00", caption="架构图"))
 
     html = render_wechat_html(article)
 
-    assert 'max-width:560px' in html
+    assert 'max-height:360px' in html
+    assert 'width:auto' in html
+    assert 'max-width:100%' in html
 
 
 def test_asset_resolution_applies_article_image_size_to_existing_html():
@@ -93,7 +131,8 @@ def test_asset_resolution_applies_article_image_size_to_existing_html():
     resolved = resolve_asset_urls(html, "task-1", manifest)
 
     assert 'src="/api/v1/tasks/task-1/assets/img-00"' in resolved
-    assert 'max-width:560px' in resolved
+    assert 'max-height:360px' in resolved
+    assert 'width:auto' in resolved
 
 
 def test_human_markdown_renders_as_safe_wechat_html():

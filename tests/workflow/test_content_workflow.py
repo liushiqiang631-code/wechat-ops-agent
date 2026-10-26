@@ -505,6 +505,46 @@ async def test_quality_failure_skips_asset_materialization_until_text_is_accepta
 
 
 @pytest.mark.asyncio
+async def test_quality_handoff_can_include_gallery_while_remaining_unapproved(tmp_path: Path):
+    from app.config.settings import Settings
+    from app.services.images.assets import AssetMaterializer
+    from app.services.knowledge import KnowledgeImage, KnowledgeResults
+    from app.skills.visual_planning import VisualPlanningSkill
+    class Knowledge:
+        async def search(self, *args, **kwargs):
+            return KnowledgeResults(images=[KnowledgeImage(
+                id=str(i) * 32, name='产品.png', folder_name='LangGraph', mime='image/png',
+                width=1200, height=800, size=100) for i in range(1, 5)])
+        def image_url(self, identifier):
+            return 'https://kb.example/' + identifier
+        async def download_image(self, *args, **kwargs):
+            return b'\x89PNG\r\n\x1a\ncontrolled-fixture'
+    class NoModel:
+        async def generate_structured(self, **kwargs):
+            pytest.fail('blocked text must not invoke visual model')
+    repository, deps = dependencies(tmp_path, Reviews())
+    knowledge = Knowledge()
+    deps = dataclasses.replace(
+        deps, visuals=VisualPlanningSkill(NoModel(), knowledge=knowledge),
+        asset_materializer=AssetMaterializer(
+            deps.artifacts, Settings(_env_file=None), knowledge=knowledge
+        ),
+        article_quality=failing_quality, editorial=Editorial(), max_review_rounds=0,
+    )
+    task = repository.create(TaskSpec(mode=TaskMode.FIXED_TOPIC, request='写 LangGraph 检查点',
+                                      topic='LangGraph 检查点'))
+    result = await run_content_task(task.id, deps)
+    assert result['status'] == TaskStatus.NEEDS_HUMAN
+    assert repository.get(task.id).status == TaskStatus.NEEDS_HUMAN
+    assets = deps.artifacts.read_json(task.id, 'assets')
+    assert len(assets['items']) == 4
+    assert all(item['source'] == 'knowledge_base' for item in assets['items'])
+    assert all(item['status'] == 'ready' for item in assets['items'])
+    assert any(section.type == 'figure' for section in result['article'].sections)
+    assert not (deps.artifacts.root / task.id / 'wechat_html.latest.json').exists()
+
+
+@pytest.mark.asyncio
 async def test_invalid_rewrite_output_becomes_human_handoff_with_saved_raw_text(tmp_path: Path):
     repository, deps = dependencies(tmp_path, Reviews(failures=1))
     deps = dataclasses.replace(deps, writing=InvalidRewriteWriting())
@@ -518,6 +558,32 @@ async def test_invalid_rewrite_output_becomes_human_handoff_with_saved_raw_text(
     assert repository.get(task.id).status == TaskStatus.NEEDS_HUMAN
     saved = deps.artifacts.read_json(task.id, "invalid_model_output")
     assert saved == {"stage": "rewrite", "raw_output": "{broken-json"}
+
+
+@pytest.mark.asyncio
+async def test_invalid_initial_article_saves_diagnostic_without_marking_a_draft_ready(
+    tmp_path: Path,
+):
+    class InvalidInitialWriting:
+        async def run(self, *args, **kwargs):
+            raise ModelServiceError(
+                "invalid article", code="invalid_output", retryable=True,
+                raw_output="{broken-json api_key=sk-testsecret123456",
+            )
+
+    repository, deps = dependencies(tmp_path, Reviews())
+    deps = dataclasses.replace(deps, writing=InvalidInitialWriting())
+    task = repository.create(
+        TaskSpec(mode=TaskMode.FIXED_TOPIC, request="写鱼教授", topic="鱼教授")
+    )
+    with pytest.raises(ModelServiceError):
+        await run_content_task(task.id, deps)
+    assert repository.get(task.id).status == TaskStatus.FAILED
+    saved = deps.artifacts.read_json(task.id, "invalid_model_output")
+    assert saved["stage"] == "write"
+    assert "broken-json" in saved["raw_output"]
+    assert "sk-testsecret123456" not in saved["raw_output"]
+    assert not (deps.artifacts.root / task.id / "article_ready.latest.json").exists()
 
 
 @pytest.mark.asyncio

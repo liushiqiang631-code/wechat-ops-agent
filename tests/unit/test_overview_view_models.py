@@ -280,7 +280,7 @@ def test_cover_gallery_shows_generation_time_newest_first(tmp_path: Path):
     assert [asset["asset_id"] for asset in assets] == ["cover2", "cover1"]
     assert assets[0]["created_label"].startswith("07-18")
     assert assets[1]["created_label"].startswith("07-17")
-    assert "T12:00" in assets[0]["created_iso"]
+    assert assets[0]["created_iso"] == "2026-07-18T20:00+08:00"
 
 
 def test_topics_context_lists_every_task_topic_even_unpublished(tmp_path: Path):

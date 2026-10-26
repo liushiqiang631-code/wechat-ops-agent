@@ -76,4 +76,5 @@ def test_account_style_is_installed_and_enabled_by_default(tmp_path: Path):
     assert account_style.builtin is False
     assert account_style.locked is False
     assert account_style.category == "writing_style"
-    assert account_style.version == "1.0.0"
+    assert account_style.version == "1.1.1"
+    assert "农业" in account_style.description

@@ -90,6 +90,16 @@ def test_quality_gate_rejects_shallow_article() -> None:
     }
 
 
+def test_quality_gate_returns_internal_gap_notes_for_revision():
+    article = ArticleDocument(
+        titles=["产品说明"], selected_title="产品说明", digest="产品介绍", audience="种植户",
+        sections=[ArticleSection(type="paragraph", content="资料缺口：待补充资料。")],
+        ending="完成。",
+    )
+    report = evaluate_article(article, _research(), TaskConstraints(), _blueprint())
+    assert "internal_research_status_in_copy" in {issue.code for issue in report.issues}
+
+
 def test_quality_gate_accepts_deep_evidence_bound_article() -> None:
     """Breaking evidence, section-kind, or code-status handling must fail this test."""
     body = "恢复并不是重新运行全部节点，而是读取持久状态后从明确边界继续。" * 45
@@ -205,3 +215,14 @@ def test_quality_gate_reports_too_many_headings_as_a_reduction_problem() -> None
     issue_codes = {issue.code for issue in report.issues}
     assert "too_many_sections" in issue_codes
     assert "too_few_sections" not in issue_codes
+
+
+def test_internal_data_gap_wording_in_the_recovered_draft_is_flagged():
+    for text in ["边界与局限 数据缺口与理性认知", "目前缺乏大规模的第三方独立科研数据"]:
+        article = ArticleDocument(
+            titles=["产品说明"], selected_title="产品说明", digest="内容",
+            audience="种植户", sections=[ArticleSection(type="paragraph", content=text)],
+            ending="按标签使用。",
+        )
+        report = evaluate_article(article, _research(), TaskConstraints(), _blueprint())
+        assert "internal_research_status_in_copy" in {issue.code for issue in report.issues}

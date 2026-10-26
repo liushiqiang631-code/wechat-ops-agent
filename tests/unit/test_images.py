@@ -351,3 +351,51 @@ async def test_materializer_without_providers_marks_items_skipped(tmp_path):
 
     assert manifest.items[0].status == "skipped"
     assert updated is article
+
+
+@pytest.mark.asyncio
+async def test_review_draft_gallery_failure_never_falls_back_to_paid_or_web(tmp_path):
+    class Knowledge:
+        def image_url(self, identifier):
+            return 'https://kb.example/' + identifier
+        async def download_image(self, *args, **kwargs):
+            raise ValueError('deleted image')
+    class Forbidden:
+        async def generate(self, *args, **kwargs):
+            pytest.fail('review-draft gallery cannot generate images')
+        async def search(self, *args, **kwargs):
+            pytest.fail('review-draft gallery cannot search external images')
+    materializer = AssetMaterializer(
+        ArtifactStore(tmp_path / "outputs"),
+        settings_with_sf(),
+        ai_generator=Forbidden(),
+        search=Forbidden(),
+        knowledge=Knowledge(),
+    )
+    article = ArticleDocument(
+        titles=["鱼教授"],
+        selected_title="鱼教授",
+        digest="摘要",
+        audience="种植户",
+        ending="结尾",
+        sections=[
+            ArticleSection(type="figure", asset_id="invented", caption="占位"),
+        ],
+    )
+    plan = VisualPlan(
+        items=[
+            VisualItem(
+                kind="concept",
+                placement="正文",
+                purpose="配图",
+                prompt_or_source="图库",
+                source="knowledge_base",
+                knowledge_image_id="a" * 32,
+            )
+        ]
+    )
+    manifest, updated = await materializer.materialize_knowledge_only(
+        "review-draft", plan, article
+    )
+    assert manifest.items[0].status == 'failed'
+    assert not any(s.type == 'figure' for s in updated.sections)

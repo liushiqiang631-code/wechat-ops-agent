@@ -29,7 +29,7 @@ def test_migrations_adopt_legacy_create_all_database_and_remain_idempotent(
     run_migrations(database_url)
     run_migrations(database_url)
 
-    assert _version(database_url) == "0003_skill_states"
+    assert _version(database_url) == "0004_omni_channel"
 
 
 def test_migrations_build_a_new_database(tmp_path: Path) -> None:
@@ -37,7 +37,7 @@ def test_migrations_build_a_new_database(tmp_path: Path) -> None:
 
     run_migrations(database_url)
 
-    assert _version(database_url) == "0003_skill_states"
+    assert _version(database_url) == "0004_omni_channel"
 
 
 def test_migrations_reconcile_stale_revision_when_legacy_table_already_exists(
@@ -58,4 +58,4 @@ def test_migrations_reconcile_stale_revision_when_legacy_table_already_exists(
 
     run_migrations(database_url)
 
-    assert _version(database_url) == "0003_skill_states"
+    assert _version(database_url) == "0004_omni_channel"

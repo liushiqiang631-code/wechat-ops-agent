@@ -90,9 +90,11 @@ def test_windows_launcher_is_cmd_safe_and_waits_for_health():
 
     assert launcher.isascii()
     text = launcher.decode("ascii").lower()
-    # The launcher runs on the system Python via the py launcher; it must not
-    # depend on a project-local virtual environment.
-    assert ".venv" not in text
+    # The launcher prefers a project-local venv when it exists (its packages are
+    # version-locked), but must still boot a fresh clone via the system Python:
+    # the venv branch is conditional and the py -3.13 fallback stays in place.
+    assert 'if exist ".venv\\scripts\\python.exe"' in text
+    assert "if not defined pycmd py -3.13" in text
     assert "py -3.13" in text
     assert "@('-m','app.cli','serve'" in text
     # The CLI owns health polling and opens the browser only after /health responds.
